@@ -25,7 +25,9 @@ app.get('/download-software', (req, res) => {
 // Isso permite acessar http://SEU-IP:3000 e ver o painel
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
+app.get('/', (req, res) => res.redirect('/operacional'));
+
+app.get('/operacional', (req, res) => {
     res.sendFile(__dirname + '/dashboard.html');
 });
 
