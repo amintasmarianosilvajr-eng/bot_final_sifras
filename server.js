@@ -3,8 +3,14 @@ const fetch = require('node-fetch');
 const crypto = require('crypto');
 const cors = require('cors');
 const fs = require('fs');
+const path = require('path');
 
-const DATA_FILE = './database.json';
+// --- CONFIGURAÇÃO DE PERSISTÊNCIA (RAILWAY VOLUME) ---
+const VOLUME_PATH = '/app/data';
+const DATA_FILE = fs.existsSync(VOLUME_PATH) ? path.join(VOLUME_PATH, 'database.json') : './database.json';
+
+// Log para confirmar onde os dados estão sendo salvos
+console.log(`[STORAGE] Usando base de dados em: ${DATA_FILE}`);
 
 const app = express();
 const path = require('path');
@@ -122,7 +128,7 @@ function loadDatabase() {
                     client.buyPercentage = saved.buyPercentage || 1.0;
                     client.isInfinityLoop = saved.isInfinityLoop || false;
 
-                    // Lógica de Recuperação de Trade
+                    // Lógica de Recuperação Automática (Modo Persistente Alfa)
                     if (saved.status === 'IN_TRADE' && saved.currentAsset) {
                         client.status = 'IN_TRADE';
                         client.currentAsset = saved.currentAsset;
@@ -131,6 +137,12 @@ function loadDatabase() {
                         client.tradeStartTime = Date.now();
                         addServerLog(client.id, `♻️ OPERAÇÃO RECUPERADA: Monitorando ${client.currentAsset} novamente...`, 'info');
                         monitorTrade(client, client.currentAsset, client.buyPrice);
+                    } else if (saved.status === 'SCANNING') {
+                        client.status = 'SCANNING';
+                        addServerLog(client.id, `♻️ MONITORAMENTO RESTAURADO: Sniper ativo no Radar Global.`, 'info');
+                    } else if (saved.status === 'COOLDOWN') {
+                        client.status = 'SCANNING'; // Ao reiniciar em cooldown, volta a escanear para não perder tempo
+                        addServerLog(client.id, `♻️ REINÍCIO PÓS-PAUSA: Retornando ao monitoramento.`, 'info');
                     }
                 }
             });
@@ -244,6 +256,7 @@ async function binanceRequest(client, endpoint, method = 'GET', params = {}) {
 
 async function updateStatus(client, newStatus, msg = '') {
     client.status = newStatus;
+    saveDatabase(); // Salva o novo status imediatamente
     console.log(`[CLIENT ${client.id} STATUS] ${newStatus} ${msg ? '-' : ''} ${msg}`);
 }
 
