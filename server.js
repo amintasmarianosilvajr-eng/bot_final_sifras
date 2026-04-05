@@ -831,5 +831,10 @@ app.post('/reset-keys', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Sifras Sniper Server - Heartbeat Global Ativo na porta ${PORT} (0.0.0.0)`);
+    console.log('======================================================');
+    console.log('🚀 SIFRAS INVEST - SERVIDOR ATIVO (MODO SNIPER)');
+    console.log(`📡 URL: http://0.0.0.0:${PORT}`);
+    console.log(`🔧 NODE VERSION: ${process.version}`);
+    console.log(`📈 AMBIENTE: ${process.env.RAILWAY_ENVIRONMENT_NAME || 'LOCAL'}`);
+    console.log('======================================================');
 });
