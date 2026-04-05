@@ -11,6 +11,14 @@ const path = require('path');
 app.use(express.json());
 app.use(cors());
 
+// --- MIDDLEWARE DE SEGURANÇA E CONEXÃO (CSP FIX) ---
+app.use((req, res, next) => {
+    // Permite que o dashboard se conecte a si mesmo, ao Google Fonts e à Binance
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.binance.com; connect-src 'self' https://*.binance.com;");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    next();
+});
+
 // --- ROTA DE DOWNLOAD DO EXECUTÁVEL ---
 app.get('/download-software', (req, res) => {
     // Caminho relativo para compatibilidade com Linux/Railway
