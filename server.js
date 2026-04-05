@@ -24,17 +24,23 @@ app.get('/download-software', (req, res) => {
 
 // --- HEALTH CHECK ---
 app.get('/ping', (req, res) => {
-    res.json({ status: 'online', time: new Date().toISOString() });
+    res.set('X-Deploy-Status', 'OK');
+    res.json({ status: 'online', time: new Date().toISOString(), version: 'v1.0.2' });
 });
 
-// --- SERVIR ARQUIVOS ESTÁTICOS (LOGIN/DASHBOARD) ---
-// Serve o index.html na raiz automaticamente
-app.use(express.static(__dirname));
+// --- ROTAS PRINCIPAIS (LOGIN/DASHBOARD) ---
+// Serve o index.html na raiz explicitamente
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Rota específica para o modo operacional (Dashboard)
 app.get('/operacional', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
+
+// --- SERVIR ARQUIVOS ESTÁTICOS (CONFIGURAÇÃO FINAL) ---
+app.use(express.static(__dirname));
 
 // --- CONFIGURAÇÃO DOS CLIENTES ---
 const clients = [];
