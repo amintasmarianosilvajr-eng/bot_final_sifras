@@ -1,0 +1,22 @@
+{
+  "name": "sifras-invest-atualizado",
+  "version": "1.0.0",
+  "description": "Binance Volatility Sniper Bot - Updated Edition",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "build": "electron-packager . SIFRAS_INVEST_ATUALIZADO --platform=win32 --arch=x64 --overwrite --out=release"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "node-fetch": "^2.7.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-packager": "^17.1.2"
+  }
+}
