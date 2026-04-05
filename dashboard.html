@@ -423,7 +423,7 @@
         <div class="panel" style="margin-bottom: 1.5rem;">
             <h3
                 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--cyber-blue); font-family: 'Orbitron'; display: flex; justify-content: space-between;">
-                HUB DE CONEXÃO - 10 CLIENTES
+                HUB DE CONEXÃO - 1 CLIENTE
                 <span style="font-size: 0.6rem; color: #444;">CLIQUE EM 👁️ PARA MONITORAR</span>
             </h3>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
@@ -431,7 +431,7 @@
                 <script>
                     const hubGrid = document.currentScript.parentElement;
                     let cardsHtml = '';
-                    for (let i = 1; i <= 10; i++) {
+                    for (let i = 1; i <= 1; i++) {
                         cardsHtml += `
                         <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
                             <div style="font-size: 0.7rem; color: var(--cyber-gold); margin-bottom: 8px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
@@ -658,7 +658,7 @@
             document.getElementById('viewingLabel').style.color = 'var(--cyber-blue)';
 
             // Destaque visual no hub
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 1; i++) {
                 const card = document.getElementById(`cardClient${i}`);
                 if (i === id) card.classList.add('client-card-active');
                 else card.classList.remove('client-card-active');

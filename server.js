@@ -33,7 +33,7 @@ app.get('/operacional', (req, res) => {
 
 // --- CONFIGURAÇÃO DOS CLIENTES ---
 const clients = [];
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 1; i++) {
     clients.push({
         id: i + 1,
         clientName: '',
