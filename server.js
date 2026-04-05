@@ -13,7 +13,6 @@ const DATA_FILE = fs.existsSync(VOLUME_PATH) ? path.join(VOLUME_PATH, 'database.
 console.log(`[STORAGE] Usando base de dados em: ${DATA_FILE}`);
 
 const app = express();
-const path = require('path');
 app.use(express.json());
 app.use(cors());
 
