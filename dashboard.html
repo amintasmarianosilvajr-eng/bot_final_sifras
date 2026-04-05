@@ -1144,6 +1144,7 @@
         }
 
         setInterval(updateUI, 2000); // UI Ferrari (2s para economizar processamento com Top 30)
+        updateUI(); // Chamada inicial imediata
 
         // Função para Gerar Relatório PDF
         async function downloadReport(clientId) {
