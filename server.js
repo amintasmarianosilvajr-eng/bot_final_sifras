@@ -22,14 +22,18 @@ app.get('/download-software', (req, res) => {
     }
 });
 
-// --- SERVIR ARQUIVOS ESTÁTICOS (DASHBOARD) ---
-// Isso permite acessar http://SEU-IP:3000 e ver o painel
+// --- HEALTH CHECK ---
+app.get('/ping', (req, res) => {
+    res.json({ status: 'online', time: new Date().toISOString() });
+});
+
+// --- SERVIR ARQUIVOS ESTÁTICOS (LOGIN/DASHBOARD) ---
+// Serve o index.html na raiz automaticamente
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => res.redirect('/operacional'));
-
+// Rota específica para o modo operacional (Dashboard)
 app.get('/operacional', (req, res) => {
-    res.sendFile(__dirname + '/dashboard.html');
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
 // --- CONFIGURAÇÃO DOS CLIENTES ---
