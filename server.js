@@ -829,6 +829,6 @@ app.post('/reset-keys', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Sifras Sniper Server - Heartbeat Global Ativo na porta ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Sifras Sniper Server - Heartbeat Global Ativo na porta ${PORT} (0.0.0.0)`);
 });
