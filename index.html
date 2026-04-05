@@ -336,8 +336,8 @@
             const enteredPassword = passwordInput.value;
 
             if (enteredPassword === CORRECT_PASSWORD) {
-                // Senha correta - redireciona para o dashboard
-                window.location.href = 'dashboard.html';
+                // Senha correta - redireciona para a rota operacional
+                window.location.href = '/operacional';
             } else {
                 // Senha incorreta - mostra erro
                 errorMessage.classList.add('show');

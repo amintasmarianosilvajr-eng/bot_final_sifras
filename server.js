@@ -13,11 +13,12 @@ app.use(cors());
 
 // --- ROTA DE DOWNLOAD DO EXECUTÁVEL ---
 app.get('/download-software', (req, res) => {
-    const zipPath = 'C:\\Users\\user\\.gemini\\antigravity\\scratch\\SIFRAS_INVEST_ATUALIZADO_0.0.1\\SIFRAS_INVEST_ALFA_ATUALIZADO.zip';
+    // Caminho relativo para compatibilidade com Linux/Railway
+    const zipPath = path.join(__dirname, 'release', 'SIFRAS_INVEST_ALFA_ATUALIZADO.zip');
     if (fs.existsSync(zipPath)) {
         res.download(zipPath, 'Sifras_Alfa_Personal_Completo.zip');
     } else {
-        res.status(404).send('O pacote está sendo gerado ou não foi encontrado.');
+        res.status(404).send('O pacote está sendo gerado ou não foi encontrado na pasta /release.');
     }
 });
 
