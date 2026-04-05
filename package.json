@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node server.js",
     "server": "node server.js",
-    "build": "electron-packager . SIFRAS_INVEST_ATUALIZADO --platform=win32 --arch=x64 --overwrite --out=release"
+    "build": "echo 'Build skipped on Railway'",
+    "pack-win": "electron-packager . SIFRAS_INVEST_ATUALIZADO --platform=win32 --arch=x64 --overwrite --out=release"
   },
   "dependencies": {
     "cors": "^2.8.6",
