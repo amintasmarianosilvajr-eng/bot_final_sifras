@@ -345,31 +345,43 @@ setInterval(async () => {
         console.log(`[RANKING BINANCE] ${topString}`);
 
         // 4. ALIMENTAR HISTÓRICO E CONTROLE DO RELÓGIO DE 20S
-        if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
+        const hasActiveScanner = clients.some(c => c.status === 'SCANNING');
+        let isCycleEnd = false;
         
-        // Se já bateu os 20s de espera
-        const isCycleEnd = (now - globalMarket.lastCycleStartTime) >= 19500;
-        
-        let currentMaxJump = 0;
-        globalMarket.coinJumps = {}; // Jumps em relação ao START do ciclo
-        
-        for (const coin of globalMarket.top20) {
-            if (!globalMarket.priceHistory[coin.symbol]) {
-                globalMarket.priceHistory[coin.symbol] = coin.price; // Preenche a 1ª Vez
-                continue;
+        if (!hasActiveScanner) {
+            globalMarket.lastCycleStartTime = 0;
+            globalMarket.countdownRemaining = 20;
+            // Limpa o histórico para ter o momento exato de conexão como base 0 limpa
+            globalMarket.priceHistory = {};
+            globalMarket.coinJumps = {};
+        } else {
+            if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
+            
+            // Se já bateu os 20s de espera
+            isCycleEnd = (now - globalMarket.lastCycleStartTime) >= 19500;
+            
+            let currentMaxJump = 0;
+            globalMarket.coinJumps = {}; // Jumps em relação ao START do ciclo
+            
+            for (const coin of globalMarket.top20) {
+                if (!globalMarket.priceHistory[coin.symbol]) {
+                    globalMarket.priceHistory[coin.symbol] = coin.price; // Preenche a 1ª Vez
+                    continue;
+                }
+                
+                const startPrice = globalMarket.priceHistory[coin.symbol];
+                const jump = ((coin.price - startPrice) / startPrice) * 100;
+                globalMarket.coinJumps[coin.symbol] = jump;
+                if (Math.abs(jump) > currentMaxJump) currentMaxJump = Math.abs(jump);
             }
             
-            const startPrice = globalMarket.priceHistory[coin.symbol];
-            const jump = ((coin.price - startPrice) / startPrice) * 100;
-            globalMarket.coinJumps[coin.symbol] = jump;
-            if (Math.abs(jump) > currentMaxJump) currentMaxJump = Math.abs(jump);
+            globalMarket.maxJump = currentMaxJump;
+            
+            // Expor o tempo restante para o FrontEnd de forma limpa (0 a 20)
+            globalMarket.countdownRemaining = isCycleEnd ? 0 : Math.max(1, Math.ceil((20000 - (now - globalMarket.lastCycleStartTime)) / 1000));
         }
-        
-        globalMarket.maxJump = currentMaxJump;
+
         globalMarket.lastUpdate = now;
-        
-        // Expor o tempo restante para o FrontEnd de forma limpa (0 a 20)
-        globalMarket.countdownRemaining = isCycleEnd ? 0 : Math.max(1, Math.ceil((20000 - (now - globalMarket.lastCycleStartTime)) / 1000));
 
         // 5. ATUALIZAR SALDOS EM TEMPO REAL
         for (const client of clients) {
@@ -484,15 +496,9 @@ async function checkClientsForOpportunity(isCycleEnd) {
 
         addServerLog(client.id, `🎯 FIM DOS 20s: A Campeã do Ranking(2-10) é ${bestCoin.symbol} (+${maxVolPositive.toFixed(3)}%)`, 'trigger');
 
-        // Check Segurança Padrão
-        const security = await validateAlfaSecurity(client, bestCoin.symbol, bestCoin.price);
-
-        if (security.ok) {
-            addServerLog(client.id, `🚀 EXECUTANDO COMPRA FERRARI: ${bestCoin.symbol} (Pump Capturado!)`, 'buy');
-            await executeRealBuy(client, bestCoin.symbol, bestCoin.price);
-        } else {
-            addServerLog(client.id, `❌ ENTRADA ABORTADA: ${security.msg}`, 'info');
-        }
+        // BYPASS COMPLETO DE SEGURANÇA: Compra garantida absoluta da eleita dos 20s
+        addServerLog(client.id, `🚀 EXECUTANDO COMPRA FERRARI: ${bestCoin.symbol} (Tiro Isolado 20s!)`, 'buy');
+        await executeRealBuy(client, bestCoin.symbol, bestCoin.price);
     }
 }
 
