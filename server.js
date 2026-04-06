@@ -149,6 +149,7 @@ function loadDatabase() {
         } catch (e) { console.error('Erro ao carredar DB:', e.message); }
     }
 }
+const globalLogs = [];
 loadDatabase();
 
 // --- DADOS DE MERCADO GLOBAIS (HEARTBEAT) ---
@@ -162,8 +163,6 @@ let globalMarket = {
     priceHistory: {}, // Global: 'SYMBOL' -> price (Snapshot at start of 20s)
     lastCycleStartTime: 0 // Início do relógio de 20 segundos
 };
-
-const globalLogs = [];
 
 const BLACKLIST = [
     // --- MOEDAS SUSPEITAS / BAIXA RELEV NCIA / DESLISTADAS ---
@@ -222,7 +221,7 @@ function addServerLog(clientId, msg, type = 'info') {
     globalLogs.unshift(logItem);
     if (globalLogs.length > 100) globalLogs.pop();
 
-    console.log(`[${clientPrefix}] ${timestamp} - ${msg}`);
+    console.log(`[${prefix}] ${time} - ${msg}`);
 }
 
 function getSignature(queryString, apiSecret) {
