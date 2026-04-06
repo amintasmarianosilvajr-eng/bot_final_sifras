@@ -578,6 +578,7 @@ async function executeRealBuy(client, symbol, price) {
                 client.entryPrice = price;
                 client.buyPrice = price;
                 client.tradeStartTime = Date.now();
+                updateStatus(client, 'IN_TRADE', `Operação Assumida Fail-Safe: ${symbol}`);
                 monitorTrade(client, symbol, price);
                 return;
             }

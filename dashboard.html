@@ -945,16 +945,6 @@
 
                     tPanel.style.display = 'block';
                     iArea.style.display = 'none';
-
-                    document.getElementById('activeSymbol').innerText = state.currentAsset;
-                    document.getElementById('buyPrice').innerText = `$${state.entryPrice.toFixed(6)}`;
-                    document.getElementById('targetPrice').innerText = `$${state.targetPrice ? state.targetPrice.toFixed(6) : (state.entryPrice * 1.007).toFixed(6)}`;
-
-                    fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${state.currentAsset}`)
-                        .then(r => r.json())
-                        .then(t => {
-                            document.getElementById('livePriceNeon').innerText = parseFloat(t.price).toFixed(6);
-                        });
                 } else {
                     statusPulse.style.background = '#333';
                     statusPulse.style.boxShadow = 'none';
@@ -978,8 +968,6 @@
                 }
 
                 document.getElementById('cooldownFill').style.width = state.status === 'COOLDOWN' ? '100%' : '0%';
-
-                // Dozimetria Removida a pedido do usuário
 
                 // Atualizar Radar
                 if (state.top20 && state.top20.length > 0) {
