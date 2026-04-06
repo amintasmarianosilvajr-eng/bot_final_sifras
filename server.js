@@ -145,24 +145,20 @@ function loadDatabase() {
                     client.buyPercentage = saved.buyPercentage || 1.0;
                     client.isInfinityLoop = saved.isInfinityLoop || false;
 
-                    // Lógica de Recuperação Automática (Modo Persistente Alfa)
+                    // Lógica de Recuperação Automática (Modo de Segurança Alfa v8.6.3)
                     if (saved.status === 'IN_TRADE' && saved.currentAsset) {
+                        // Se há uma operação real aberta, o motor RECUPERA para não te deixar no prejuízo
                         client.status = 'IN_TRADE';
                         client.currentAsset = saved.currentAsset;
                         client.buyPrice = saved.buyPrice;
                         client.entryPrice = saved.entryPrice;
                         client.tradeStartTime = Date.now();
-                        addServerLog(client.id, `♻️ OPERAÇÃO RECUPERADA: Monitorando ${client.currentAsset} novamente...`, 'info');
+                        addServerLog(client.id, `♻️ OPERAÇÃO RECUPERADA: ${client.currentAsset} sob vigilância.`, 'info');
                         monitorTrade(client, client.currentAsset, client.buyPrice);
-                    } else if (saved.status === 'SCANNING') {
-                        client.status = 'SCANNING';
-                        addServerLog(client.id, `♻️ MONITORAMENTO RESTAURADO: Sniper ativo no Radar Global.`, 'info');
-                    } else if (saved.status === 'IN_TRADE' && !saved.currentAsset) {
-                        client.status = 'SCANNING';
-                        addServerLog(client.id, `♻️ CORREÇÃO DE STATUS: Ativo não detectado. Retornando ao Sniper Automático.`, 'info');
-                    } else if (saved.status === 'COOLDOWN') {
-                        client.status = 'SCANNING'; // Ao reiniciar em cooldown, volta a escanear para não perder tempo
-                        addServerLog(client.id, `♻️ REINÍCIO PÓS-PAUSA: Retornando ao monitoramento.`, 'info');
+                    } else {
+                        // PARA TODO O RESTO: O motor aguarda o seu comando manual
+                        client.status = 'IDLE'; 
+                        addServerLog(client.id, `✅ SISTEMA CARREGADO: Motor em IDLE (Aguardando Comando Manual).`, 'info');
                     }
                 }
             });
