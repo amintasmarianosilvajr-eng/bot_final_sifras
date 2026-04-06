@@ -652,20 +652,18 @@
         window.lastSaleNotified = false;
         let lastLogTime = "";
 
-        // Relógio de Precisão Frontend (Interpolado para ser veloz)
-        let targetCycleEnd = 0;
+        // Relógio de Precisão Frontend
+        let frontendSeconds = 20;
         setInterval(() => {
-            if (!targetCycleEnd) return;
-            let rem = targetCycleEnd - Date.now();
-            if (rem < 0) rem = 20000; // Reset visual imediato ao virar o loop
+            if (frontendSeconds > 0) frontendSeconds--;
+            else frontendSeconds = 20; // Fallback loop visual
             
-            const sec = Math.ceil(rem / 1000);
-            const secStr = sec < 10 ? `0${sec}` : sec;
+            const secStr = frontendSeconds < 10 ? `0${frontendSeconds}` : frontendSeconds;
             const clk = document.getElementById('countdownClock');
             if (clk) {
-                clk.innerText = `00:${secStr > 20 ? 20 : secStr}`;
+                clk.innerText = `00:${secStr}`;
                 // Faz o relógio piscar vermelho quando chega perto do fim
-                if (sec <= 3) {
+                if (frontendSeconds <= 3) {
                     clk.style.color = 'var(--cyber-red)';
                     clk.style.textShadow = '0 0 15px var(--cyber-red)';
                 } else {
@@ -673,7 +671,7 @@
                     clk.style.textShadow = '0 0 15px var(--cyber-gold)';
                 }
             }
-        }, 100);
+        }, 1000);
 
         // Recuperar chaves do LocalStorage no carregamento inicial
         document.addEventListener('DOMContentLoaded', () => {
@@ -701,9 +699,10 @@
         }
 
         function addLog(msg, type = '') {
+            const time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
             const div = document.createElement('div');
             div.className = `log-line ${type ? 'log-' + type : ''}`;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            div.innerHTML = `[${time}] ${msg}`;
             const box = document.getElementById('logBox');
             box.prepend(div);
         }
@@ -740,9 +739,9 @@
                             }
                         }
                         
-                        // Sincronizar o relógio 20s
-                        if (state.lastCycleStartTime) {
-                            targetCycleEnd = state.lastCycleStartTime + 20000;
+                        // Sincronizar o relógio 20s rígido do backend
+                        if (state.countdownRemaining !== undefined) {
+                            frontendSeconds = state.countdownRemaining;
                         }
 
                         // Sincronizar Campos (Nome e Porcentagem) se campos estiverem vazios/padrão

@@ -200,8 +200,8 @@ async function fetchWithTimeout(resource, options = {}) {
 function addServerLog(clientId, msg, type = 'info') {
     const client = clients[clientId - 1];
     if (!client) return;
-    const timestamp = new Date().toLocaleTimeString();
-    const clientPrefix = client.clientName ? `${client.clientName}` : `Cliente ${clientId}`;
+    const timestamp = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const clientPrefix = client.clientName ? `${client.clientName.toUpperCase()}` : `CLIENTE ${clientId}`;
     const fullMsg = `${clientPrefix} / ${msg}`;
 
     const logItem = { timestamp, msg: fullMsg, type };
@@ -340,7 +340,7 @@ setInterval(async () => {
         // 4. ALIMENTAR HISTÓRICO E CONTROLE DO RELÓGIO DE 20S
         if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
         
-        // Se já bateu os 20s de espera (dando margem de erro por causa dos 5s do heartbeat)
+        // Se já bateu os 20s de espera
         const isCycleEnd = (now - globalMarket.lastCycleStartTime) >= 19500;
         
         let currentMaxJump = 0;
@@ -356,15 +356,13 @@ setInterval(async () => {
             const jump = ((coin.price - startPrice) / startPrice) * 100;
             globalMarket.coinJumps[coin.symbol] = jump;
             if (Math.abs(jump) > currentMaxJump) currentMaxJump = Math.abs(jump);
-            
-            // Se fechou 20s, atualiza a Snapshot base para recomeçar o motor de medição
-            if (isCycleEnd) {
-                globalMarket.priceHistory[coin.symbol] = coin.price;
-            }
         }
         
         globalMarket.maxJump = currentMaxJump;
-        globalMarket.lastUpdate = Date.now();
+        globalMarket.lastUpdate = now;
+        
+        // Expor o tempo restante para o FrontEnd de forma limpa (0 a 20)
+        globalMarket.countdownRemaining = isCycleEnd ? 0 : Math.max(1, Math.ceil((20000 - (now - globalMarket.lastCycleStartTime)) / 1000));
 
         // 5. ATUALIZAR SALDOS EM TEMPO REAL
         for (const client of clients) {
@@ -382,9 +380,14 @@ setInterval(async () => {
         // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO)
         await checkClientsForOpportunity(isCycleEnd);
 
-        // Se atiramos, o ciclo se renova imediatamente para a próxima conta de 20s
+        // Se atiramos, o ciclo se renova imediatamente para a próxima conta de 20s e RECARREGA OS PREÇOS ALVO
         if (isCycleEnd) {
-            globalMarket.lastCycleStartTime = Date.now();
+            globalMarket.lastCycleStartTime = now;
+            globalMarket.countdownRemaining = 20;
+            // Atualiza a Snapshot DEPOIS do gatilho ter sido puxado para não bugar a segurança
+            for (const coin of globalMarket.top20) {
+                globalMarket.priceHistory[coin.symbol] = coin.price;
+            }
         }
 
     } catch (e) {
@@ -732,7 +735,7 @@ app.get('/status', (req, res) => {
         top20: globalMarket.top20,
         coinJumps: globalMarket.coinJumps,
         maxJump: globalMarket.maxJump,
-        lastCycleStartTime: globalMarket.lastCycleStartTime
+        countdownRemaining: globalMarket.countdownRemaining
     });
 });
 
