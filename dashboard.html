@@ -457,9 +457,9 @@
                                 <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY">
-                                <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="SECRET">
-                                <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Reset Keys">🔑</button>
+                                <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Auto-Saved)">
+                                <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="SECRET (Auto-Saved)">
+                                <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
                             </div>
                         </div>
                         `;
@@ -650,6 +650,16 @@
         let monitoredClientId = null; // null = Automático
         window.lastSaleNotified = false;
         let lastLogTime = "";
+
+        // Recuperar chaves do LocalStorage no carregamento inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            for (let i = 1; i <= 1; i++) {
+                const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
+                const savedSec = localStorage.getItem(`sifras_secret_${i}`);
+                if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
+                if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            }
+        });
 
         function setMonitor(id) {
             monitoredClientId = id;
@@ -1104,6 +1114,10 @@
                     alert(`${clientName}: Chaves API Requeridas!`);
                     return;
                 }
+                
+                // Salvar permanentemente no navegador (LocalStorage)
+                localStorage.setItem(`sifras_apikey_${i}`, apiKey);
+                localStorage.setItem(`sifras_secret_${i}`, apiSecret);
 
                 try {
                     // Se o texto não contiver "ATIVO", conectamos
@@ -1247,7 +1261,13 @@
         }
 
         async function resetKeys(id) {
-            if (!confirm(`Deseja realmente APAGAR as Chaves de API do Cliente #${id}?`)) return;
+            if (!confirm(`Deseja realmente APAGAR as Chaves de API salvas do Cliente #${id}?`)) return;
+            
+            document.getElementById(`apiKey${id}`).value = '';
+            document.getElementById(`apiSecret${id}`).value = '';
+            localStorage.removeItem(`sifras_apikey_${id}`);
+            localStorage.removeItem(`sifras_secret_${id}`);
+            alert(`Chaves do Cliente #${id} removidas do navegador com sucesso.`);
             try {
                 const res = await fetch(`${API_URL}/reset-keys`, {
                     method: 'POST',
