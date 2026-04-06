@@ -654,9 +654,15 @@
 
         // Relógio de Precisão Frontend
         let frontendSeconds = 20;
+        window.isEngineRunning = false;
+        
         setInterval(() => {
-            if (frontendSeconds > 0) frontendSeconds--;
-            else frontendSeconds = 20; // Fallback loop visual
+            if (!window.isEngineRunning) {
+                frontendSeconds = 20;
+            } else {
+                if (frontendSeconds > 0) frontendSeconds--;
+                else frontendSeconds = 20; // Fallback loop visual
+            }
             
             const secStr = frontendSeconds < 10 ? `0${frontendSeconds}` : frontendSeconds;
             const clk = document.getElementById('countdownClock');
@@ -743,6 +749,8 @@
                         if (state.countdownRemaining !== undefined) {
                             frontendSeconds = state.countdownRemaining;
                         }
+                        
+                        window.isEngineRunning = (s.status === 'SCANNING');
 
                         // Sincronizar Campos (Nome e Porcentagem) se campos estiverem vazios/padrão
                         const inputName = document.getElementById(`clientName${s.id}`);
