@@ -217,7 +217,6 @@ function addServerLog(clientId, msg, type = 'info') {
         client.logs.unshift(logItem);
         if (client.logs.length > 50) client.logs.pop();
     }
-    if (client.logs.length > 50) client.logs.pop();
 
     // Log Global (para o Dashboard)
     globalLogs.unshift(logItem);
