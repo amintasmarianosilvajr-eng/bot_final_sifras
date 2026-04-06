@@ -164,6 +164,14 @@ function loadDatabase() {
                 }
             });
             console.log('✅ Banco de dados carregado: Lucros e Históricos restaurados.');
+            
+            // --- PROTOCOLO DE RESGATE (RESUME): Retoma monitoramento de trades ativos após reinicialização ---
+            clients.forEach(c => {
+                if (c.status === 'IN_TRADE' && c.currentAsset) {
+                    console.log(`[RESUME] Retomando monitoramento de ${c.currentAsset} para o Cliente ${c.id}`);
+                    monitorTrade(c, c.currentAsset, c.buyPrice);
+                }
+            });
         } catch (e) { console.error('Erro ao carredar DB:', e.message); }
     }
 }
@@ -214,7 +222,12 @@ async function fetchWithTimeout(resource, options = {}) {
 }
 
 function addServerLog(clientId, msg, type = 'info') {
-    const time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    let time;
+    try {
+        time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch(e) {
+        time = new Date().toLocaleTimeString('pt-BR'); // Fallback para o horário do servidor
+    }
     let prefix = 'SISTEMA';
     let client = null;
     
