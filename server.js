@@ -525,8 +525,8 @@ async function executeRealBuy(client, symbol, price) {
         }
         let amount = totalVal * (client.buyPercentage || 1.0);
 
-        if (amount < 10) { // Binance mínimo é ~10 USDT
-            addServerLog(client.id, `Saldo insuficiente ($${amount.toFixed(2)}) para comprar ${symbol} (Mínimo $10)`, 'balance');
+        if (amount < 9.95) { // Binance mínimo absoluto é 10.00 USDT
+            addServerLog(client.id, `Saldo insuficiente ($${amount.toFixed(2)}) para comprar ${symbol} (Mínimo Binance é $10.00)`, 'balance');
             updateStatus(client, 'SCANNING');
             return;
         }
