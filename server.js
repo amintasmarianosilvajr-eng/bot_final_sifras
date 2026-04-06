@@ -518,13 +518,11 @@ async function executeRealBuy(client, symbol, price) {
         }
 
         const usdtBalance = account.balances.find(b => b.asset === 'USDT');
-        if (!usdtBalance) {
-            addServerLog(client.id, "Saldo USDT não localizado na conta.", 'balance');
-            updateStatus(client, 'SCANNING');
-            return;
+        
+        let totalVal = 0;
+        if (usdtBalance) {
+            totalVal = parseFloat(usdtBalance.free);
         }
-
-        let totalVal = parseFloat(usdtBalance.free);
         let amount = totalVal * (client.buyPercentage || 1.0);
 
         if (amount < 10) { // Binance mínimo é ~10 USDT
@@ -538,9 +536,19 @@ async function executeRealBuy(client, symbol, price) {
         });
 
         if (buyOrder.error) {
-            addServerLog(client.id, `ERRO BINANCE COMPRA [${buyOrder.code}]: ${buyOrder.msg || 'Falha ao processar ordem'}`, 'error');
-            updateStatus(client, 'SCANNING');
-            return;
+            // FIREWALL ANTI-GHOST TRADE: Verifica se apesar do erro/timeout, a ordem entrou na corretora silenciosamente!
+            const checkAcc = await binanceRequest(client, '/api/v3/account');
+            const coinAsset = symbol.replace('USDT', '');
+            const coinBal = checkAcc.balances ? checkAcc.balances.find(b => b.asset === coinAsset) : null;
+            
+            if (coinBal && parseFloat(coinBal.free) > 0.0) {
+                addServerLog(client.id, `✅ Trade assumido por fail-safe (Timeout Rede mascarou sucesso Binance)!`, 'buy');
+                // Segue o fluxo sem abortar
+            } else {
+                addServerLog(client.id, `ERRO BINANCE COMPRA [${buyOrder.code}]: ${buyOrder.msg || 'Falha ao processar ordem'}`, 'error');
+                updateStatus(client, 'SCANNING');
+                return;
+            }
         }
 
         if (!client.tradedCoins) client.tradedCoins = [];
@@ -558,7 +566,23 @@ async function executeRealBuy(client, symbol, price) {
         monitorTrade(client, symbol, price);
 
     } catch (e) {
-        addServerLog(client.id, "Erro Interno COMPRA: " + e.message, 'error');
+        addServerLog(client.id, "Aviso COMPRA: " + e.message, 'error');
+        // Último Fail-Safe de catch
+        try {
+            const checkAcc2 = await binanceRequest(client, '/api/v3/account');
+            const coinAsset2 = symbol.replace('USDT', '');
+            const coinBal2 = checkAcc2.balances ? checkAcc2.balances.find(b => b.asset === coinAsset2) : null;
+            if (coinBal2 && parseFloat(coinBal2.free) > 0.0) {
+                addServerLog(client.id, `✅ Trade assumido por fail-safe do Catch!`, 'buy');
+                client.currentAsset = symbol;
+                client.entryPrice = price;
+                client.buyPrice = price;
+                client.tradeStartTime = Date.now();
+                monitorTrade(client, symbol, price);
+                return;
+            }
+        } catch(e2) {}
+
         updateStatus(client, 'SCANNING');
     }
 }
