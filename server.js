@@ -418,7 +418,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('[SYSTEM HEARTBEAT ERROR]', e.message);
     }
-}, 5000); // Frequência de 5s para o Ranking reagir rápido
+}, 2500); // Frequência de 2.5s para o Ranking e Saldos reagirem rápido
 
 async function validateAlfaSecurity(client, symbol, currentPrice) {
     try {

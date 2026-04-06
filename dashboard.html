@@ -509,37 +509,7 @@
                     style="font-size:0.55rem; color:#444; margin-bottom:15px; font-family:'Orbitron'; text-align: center;">
                     DATA REQUESTS: 0</div>
 
-                <!-- PAINEL DE TRADE NEON -->
-                <div id="tradePanel">
-                    <div
-                        style="font-family: 'Orbitron'; font-size: 0.65rem; color: var(--cyber-blue); margin-bottom: 12px; letter-spacing: 1px;">
-                        OPERATING MODE: ATIVA</div>
-                    <div id="activeSymbol"
-                        style="font-size: 1.8rem; font-weight: 900; font-family: 'Orbitron'; color: #fff; margin-bottom: 20px;">
-                        ---</div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
-                        <div>
-                            <div style="font-size: 0.55rem; color: #848e9c; margin-bottom: 5px;">ENTRY PRICE</div>
-                            <div id="buyPrice" style="font-size: 1.2rem; font-weight: 700; color: #fff;">$0.0000</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.55rem; color: var(--cyber-green); margin-bottom: 5px;">TARGET EXIT
-                                (+0.7%)</div>
-                            <div id="targetPrice"
-                                style="font-size: 1.2rem; font-weight: 700; color: var(--cyber-green); text-shadow: 0 0 10px var(--cyber-green);">
-                                $0.0000</div>
-                        </div>
-                    </div>
-
-                    <div
-                        style="text-align: center; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; border: 1px solid rgba(0,242,255,0.1);">
-                        <div style="font-size: 0.6rem; color: #848e9c; margin-bottom: 8px;">LIVE BINANCE SYNC</div>
-                        <div id="livePriceNeon"
-                            style="font-size: 3rem; font-weight: 900; font-family: 'Orbitron'; color: var(--cyber-blue); text-shadow: 0 0 20px var(--cyber-blue);">
-                            0.0000</div>
-                    </div>
-                </div>
 
                 <div id="idleArea">
                     <div
@@ -910,14 +880,12 @@
                 // Status Indicator
                 document.getElementById('statusTxt').innerText = state.status;
                 const statusPulse = document.getElementById('statusPulse');
-                const tPanel = document.getElementById('tradePanel');
                 const iArea = document.getElementById('idleArea');
                 const gaugeVal = document.getElementById('gaugeVal');
 
                 if (state.status === 'SCANNING') {
                     statusPulse.style.background = 'var(--cyber-green)';
                     statusPulse.style.boxShadow = '0 0 10px var(--cyber-green)';
-                    tPanel.style.display = 'none';
                     iArea.style.display = 'block';
 
                     if (state.lastTradeDuration && !window.lastSaleNotified) {
@@ -942,13 +910,10 @@
                     window.lastSaleNotified = false;
                     statusPulse.style.background = 'var(--cyber-blue)';
                     statusPulse.style.boxShadow = '0 0 10px var(--cyber-blue)';
-
-                    tPanel.style.display = 'block';
                     iArea.style.display = 'none';
                 } else {
                     statusPulse.style.background = '#333';
                     statusPulse.style.boxShadow = 'none';
-                    tPanel.style.display = 'none';
                     iArea.style.display = 'block';
                 }
 
