@@ -11,11 +11,22 @@ const VOLUME_PATH = '/app/data';
 const DATA_FILE = fs.existsSync(VOLUME_PATH) ? path.join(VOLUME_PATH, 'database.json') : './database.json';
 
 // Log para confirmar onde os dados estão sendo salvos
-console.log(`[STORAGE] Usando base de dados em: ${DATA_FILE}`);
-
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// --- ESTADO GLOBAL ---
+let globalLogs = [];
+let globalPingCount = 0;
+
+process.on('uncaughtException', (err) => {
+    console.error('FATAL CRASH:', err);
+    // Tenta logar no sistema se possível
+    try {
+        const time = new Date().toLocaleTimeString('pt-BR');
+        fs.appendFileSync('crash.log', `[${time}] ${err.stack}\n`);
+    } catch(e) {}
+});
 
 // --- MIDDLEWARE DE SEGURANÇA E CONEXÃO (CSP FIX) ---
 app.use((req, res, next) => {
@@ -156,7 +167,6 @@ function loadDatabase() {
         } catch (e) { console.error('Erro ao carredar DB:', e.message); }
     }
 }
-const globalLogs = [];
 loadDatabase();
 
 // --- DADOS DE MERCADO GLOBAIS (HEARTBEAT) ---
@@ -218,15 +228,22 @@ function addServerLog(clientId, msg, type = 'info') {
     const fullMsg = `${prefix} / ${msg}`;
     const logItem = { timestamp: time, msg: fullMsg, type };
 
-    // Log do cliente (para o PDF)
-    if (client) {
-        client.logs.unshift(logItem);
-        if (client.logs.length > 50) client.logs.pop();
-    }
+    try {
+        // Log do cliente (para o PDF)
+        if (client) {
+            if (!client.logs) client.logs = [];
+            client.logs.unshift(logItem);
+            if (client.logs.length > 50) client.logs.pop();
+        }
 
-    // Log Global (para o Dashboard)
-    globalLogs.unshift(logItem);
-    if (globalLogs.length > 100) globalLogs.pop();
+        // Log Global (para o Dashboard)
+        if (Array.isArray(globalLogs)) {
+            globalLogs.unshift(logItem);
+            if (globalLogs.length > 100) globalLogs.pop();
+        }
+    } catch(e) {
+        console.error("Log error:", e.message);
+    }
 
     console.log(`[${prefix}] ${time} - ${msg}`);
 }
@@ -738,8 +755,6 @@ app.post('/stop', (req, res) => {
     updateStatus(client, 'IDLE', 'Desconectado');
     res.json({ ok: true });
 });
-
-let globalPingCount = 0;
 
 app.get('/status', (req, res) => {
     globalPingCount++;
