@@ -464,13 +464,11 @@ async function validateAlfaSecurity(client, symbol, currentPrice) {
 
 // --- SCANNER DE ALTA VOLATILIDADE ALFA 20S (MOTOR LIMPO) ---
 async function checkClientsForOpportunity(isCycleEnd) {
-    if (Date.now() - globalMarket.lastUpdate > 15000) return;
-
     // SÓ atira na virada exata dos 20 segundos
     if (!isCycleEnd) return;
 
     const top = globalMarket.top20;
-    if (top.length < 10) return; 
+    if (!top || top.length === 0) return;
 
     // ISOLAR DA 2ª À 10ª COLOCADA (Índices 1 ao 9 no Top20 ordenado)
     const validPool = top.slice(1, 10);
@@ -529,8 +527,8 @@ async function executeRealBuy(client, symbol, price) {
         let totalVal = parseFloat(usdtBalance.free);
         let amount = totalVal * (client.buyPercentage || 1.0);
 
-        if (amount < 11) { // Binance mínimo é ~10 USDT, usamos 11 por segurança
-            addServerLog(client.id, `Saldo insuficiente ($${amount.toFixed(2)}) para comprar ${symbol}`, 'balance');
+        if (amount < 10) { // Binance mínimo é ~10 USDT
+            addServerLog(client.id, `Saldo insuficiente ($${amount.toFixed(2)}) para comprar ${symbol} (Mínimo $10)`, 'balance');
             updateStatus(client, 'SCANNING');
             return;
         }
@@ -715,9 +713,11 @@ app.post('/stop', (req, res) => {
     res.json({ ok: true });
 });
 
-app.get('/status', (req, res) => {
-    const requestedId = req.query.clientId ? parseInt(req.query.clientId) : null;
+let globalPingCount = 0;
 
+app.get('/status', (req, res) => {
+    globalPingCount++;
+    const requestedId = req.query.clientId ? parseInt(req.query.clientId) : null;
     let activeClient;
     if (requestedId && clients[requestedId - 1]) {
         activeClient = clients[requestedId - 1];
@@ -752,7 +752,8 @@ app.get('/status', (req, res) => {
         top20: globalMarket.top20,
         coinJumps: globalMarket.coinJumps,
         maxJump: globalMarket.maxJump,
-        countdownRemaining: globalMarket.countdownRemaining
+        countdownRemaining: globalMarket.countdownRemaining,
+        pingCount: globalPingCount
     });
 });
 
