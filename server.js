@@ -64,10 +64,10 @@ for (let i = 0; i < 1; i++) {
         apiKey: '',
         apiSecret: '',
         entryThreshold: 0.3,
-        profitTarget: 0.9,
+        profitTarget: 0.6,
         stopLoss: 4.0,
         maxOpsBeforePause: 3,
-        pauseDuration: 600000,
+        pauseDuration: 900000,
         interTradePause: 120000,
         status: 'IDLE',
         operationsCount: 0,
@@ -159,7 +159,8 @@ let globalMarket = {
     exchangeInfo: null,
     lastExchangeFetch: 0,
     lastUpdate: 0, // Proteção contra dados velhos (Desalinhamento)
-    priceHistory: {} // Agora o histórico é GLOBAL: 'SYMBOL' -> {price, time}
+    priceHistory: {}, // Global: 'SYMBOL' -> price (Snapshot at start of 20s)
+    lastCycleStartTime: 0 // Início do relógio de 20 segundos
 };
 
 const globalLogs = [];
@@ -336,26 +337,34 @@ setInterval(async () => {
         const topString = globalMarket.top20.slice(0, 6).map((x, i) => `#${i + 1} ${x.symbol.replace('USDT', '')}:${x.vol.toFixed(2)}%`).join(' | ');
         console.log(`[RANKING BINANCE] ${topString}`);
 
-        // 4. Alimentar Histórico para Segurança (Micro-Tendência)
+        // 4. ALIMENTAR HISTÓRICO E CONTROLE DO RELÓGIO DE 20S
+        if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
+        
+        // Se já bateu os 20s de espera (dando margem de erro por causa dos 5s do heartbeat)
+        const isCycleEnd = (now - globalMarket.lastCycleStartTime) >= 19500;
+        
         let currentMaxJump = 0;
-        globalMarket.coinJumps = {};
+        globalMarket.coinJumps = {}; // Jumps em relação ao START do ciclo
+        
         for (const coin of globalMarket.top20) {
             if (!globalMarket.priceHistory[coin.symbol]) {
-                globalMarket.priceHistory[coin.symbol] = { old: coin.price, time: now };
+                globalMarket.priceHistory[coin.symbol] = coin.price; // Preenche a 1ª Vez
                 continue;
             }
-            const elapsed = now - globalMarket.priceHistory[coin.symbol].time;
-            const jump = ((coin.price - globalMarket.priceHistory[coin.symbol].old) / globalMarket.priceHistory[coin.symbol].old) * 100;
+            
+            const startPrice = globalMarket.priceHistory[coin.symbol];
+            const jump = ((coin.price - startPrice) / startPrice) * 100;
             globalMarket.coinJumps[coin.symbol] = jump;
             if (Math.abs(jump) > currentMaxJump) currentMaxJump = Math.abs(jump);
-
-            // Ciclo de 10s para atualização do histórico base de segurança
-            if (elapsed >= 9500) {
-                globalMarket.priceHistory[coin.symbol] = { old: coin.price, time: now };
+            
+            // Se fechou 20s, atualiza a Snapshot base para recomeçar o motor de medição
+            if (isCycleEnd) {
+                globalMarket.priceHistory[coin.symbol] = coin.price;
             }
         }
+        
         globalMarket.maxJump = currentMaxJump;
-        globalMarket.lastUpdate = Date.now(); // Marca a hora exata da atualização válida
+        globalMarket.lastUpdate = Date.now();
 
         // 5. ATUALIZAR SALDOS EM TEMPO REAL
         for (const client of clients) {
@@ -370,8 +379,13 @@ setInterval(async () => {
             }
         }
 
-        // 6. EXECUTAR LÓGICA DE RANKING ALFA
-        await checkClientsForOpportunity();
+        // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO)
+        await checkClientsForOpportunity(isCycleEnd);
+
+        // Se atiramos, o ciclo se renova imediatamente para a próxima conta de 20s
+        if (isCycleEnd) {
+            globalMarket.lastCycleStartTime = Date.now();
+        }
 
     } catch (e) {
         console.error('[SYSTEM HEARTBEAT ERROR]', e.message);
@@ -410,8 +424,9 @@ async function validateAlfaSecurity(client, symbol, currentPrice) {
         if (bookRatio < 1.1) return { ok: false, msg: `Pressão de Venda no Book (Ratio: ${bookRatio.toFixed(2)})` };
 
         // 5. CONFIRMAÇÃO DUPLA (Preço vs 10s atrás)
-        const history = globalMarket.priceHistory[symbol];
-        if (!history || currentPrice <= history.old) return { ok: false, msg: 'Tendência de micro-queda detectada' };
+        // Adaptado para usar o Price Snapshot único que não quebre a validação antiga
+        const historySnapshot = globalMarket.priceHistory[symbol];
+        if (!historySnapshot || currentPrice <= historySnapshot) return { ok: false, msg: 'Tendência de micro-queda identificada no tiro de 20s' };
 
         addServerLog(client.id, `✅ ALFA APROVADO: RSI ${rsi.toFixed(1)} | Book ${bookRatio.toFixed(2)}x`, 'info');
         return { ok: true };
@@ -422,100 +437,53 @@ async function validateAlfaSecurity(client, symbol, currentPrice) {
     }
 }
 
-// --- SCANNER FERRARI V2 (LÓGICA REFINADA PELO USUÁRIO) ---
-async function checkClientsForOpportunity() {
-    // 1. VERIFICAÇÃO DE INTEGRIDADE DE DADOS (ANTI-DESALINHAMENTO)
-    if (Date.now() - globalMarket.lastUpdate > 15000) {
-        if (Date.now() % 5000 < 1000) console.warn("[ALFA SAFETY] Aguardando sync para garantir alinhamento perfeito.");
-        return;
-    }
+// --- SCANNER DE ALTA VOLATILIDADE ALFA 20S (MOTOR LIMPO) ---
+async function checkClientsForOpportunity(isCycleEnd) {
+    if (Date.now() - globalMarket.lastUpdate > 15000) return;
+
+    // SÓ atira na virada exata dos 20 segundos
+    if (!isCycleEnd) return;
 
     const top = globalMarket.top20;
-    if (top.length < 6) return; // Precisa de pelo menos 6 moedas para formar a tríade
+    if (top.length < 10) return; 
 
-    // Identificar as peças do tabuleiro (TRIADE SAGRADA)
-    const rank2 = top[1]; // 2ª colocada (Alvo Topo)
-    const rank4 = top[3]; // 4ª colocada (O PIVÔ INDICADOR)
-    const rank6 = top[5]; // 6ª colocada (Alvo Base)
+    // ISOLAR DA 2ª À 10ª COLOCADA (Índices 1 ao 9 no Top20 ordenado)
+    const validPool = top.slice(1, 10);
 
-    if (!rank2 || !rank4 || !rank6) return;
+    let bestCoin = null;
+    let maxVolPositive = -9999; // Buscamos apenas ganhos nesse ciclo de 20s
 
-    // Calcular as distâncias de performance (Deltas Absolutos)
-    const deltaTop = Math.abs(rank2.vol - rank4.vol);     // Distância 4 -> 2
-    const deltaBottom = Math.abs(rank4.vol - rank6.vol);  // Distância 4 -> 6
-
-    // LOG DE CONFERÊNCIA (Garantia visual do alinhamento)
-    // Mostra os Deltas para o usuário saber quão "perto" está dos gatilhos (10% e 20%)
-    const spreadInfo = Math.abs(rank2.vol - rank6.vol).toFixed(2);
-    console.log(`[ALFA TRIAD] #2(${rank2.vol.toFixed(2)}%) <${deltaTop.toFixed(2)}%> #4[PIVÔ](${rank4.vol.toFixed(2)}%) <${deltaBottom.toFixed(2)}%> #6(${rank6.vol.toFixed(2)}%) - Spread Total: ${spreadInfo}%`);
-
-    let targetCoin = null;
-    let selectedDelta = 0;
-    let strategyMsg = "";
-
-    // --- REGRA 1: FILTRO DE PROXIMIDADE 30% (DEFINITIVO) ---
-    if (deltaTop < 30.0 && deltaBottom < 30.0) {
-        // AMBAS abaixo de 30%: Segundo critério "DESEMPATE" -> Maior proximidade (menor delta)
-        if (deltaTop <= deltaBottom) {
-            targetCoin = rank2;
-            selectedDelta = deltaTop;
-            strategyMsg = "AMBAS < 30% (TIE-BREAKER: TOPO)";
-        } else {
-            targetCoin = rank6;
-            selectedDelta = deltaBottom;
-            strategyMsg = "AMBAS < 30% (TIE-BREAKER: BASE)";
+    for (const targetCoin of validPool) {
+        const jump = globalMarket.coinJumps[targetCoin.symbol] || 0;
+        if (jump > maxVolPositive && jump > 0) { // Deve ser positivo
+            maxVolPositive = jump;
+            bestCoin = targetCoin;
         }
-    } else if (deltaTop < 30.0) {
-        targetCoin = rank2;
-        selectedDelta = deltaTop;
-        strategyMsg = "GATILHO 30% (TOPO)";
-    } else if (deltaBottom < 30.0) {
-        targetCoin = rank6;
-        selectedDelta = deltaBottom;
-        strategyMsg = "GATILHO 30% (BASE)";
-    } else {
-        // Nenhuma dentro do critério de 30% em relação à 4ª moeda
+    }
+
+    if (!bestCoin) {
+        console.log(`[ALFA 20s CYCLE END] Nenhuma moeda (2-10) fechou o tiro positivo.`);
         return;
     }
 
-    // Se chegou aqui, temos um ALVO VÁLIDO PELO RANKING.
-    // Agora verificamos cada cliente individualmente.
+    console.log(`[ALFA 20s PUMP] A Vencedora da Janela foi ${bestCoin.symbol} com +${maxVolPositive.toFixed(3)}%`);
 
     for (const client of clients) {
         if (client.status !== 'SCANNING') continue;
 
-        // --- REGRA 3: ANTI-REPETIÇÃO (5 OPERAÇÕES) ---
-        // "Nunca comprar a mesma moeda antes da quinta operação"
-        if (client.tradedCoins && client.tradedCoins.includes(targetCoin.symbol)) {
-            // Moeda recém operada, ignora.
-            continue;
-        }
+        // Anti-repetição básica: A mesma moeda não deve ser re-comprada repetidamente nas 5 últimas trades
+        if (client.tradedCoins && client.tradedCoins.includes(bestCoin.symbol)) continue;
 
-        // --- REGRA 4: GATILHO DE VOLATILIDADE (0.1% em 10s) ---
-        // "Só comprar quando atingir, em 10 segundos, a volatilidade de 0,1%"
-        // Recuperamos o jump calculado no heartbeat global
-        const jump = globalMarket.coinJumps[targetCoin.symbol] || 0;
+        addServerLog(client.id, `🎯 FIM DOS 20s: A Campeã do Ranking(2-10) é ${bestCoin.symbol} (+${maxVolPositive.toFixed(3)}%)`, 'trigger');
 
-        if (Math.abs(jump) < 0.1) {
-            // Ranking alinhado, mas moeda parada. Aguarda.
-            if (Date.now() % 5000 < 1000) { // Log esporádico para não poluir
-                addServerLog(client.id, `⏳ REQUISIÇÃO ALFA: ${strategyMsg} -> Aguardando Volatilidade (Atual: ${jump.toFixed(2)}% / Meta: 0.10%)`, 'info');
-            }
-            continue;
-        }
-
-        // Log para auditoria de Gatilho
-        addServerLog(client.id, `🎯 GATILHO ALFA CONFIRMADO: ${strategyMsg} (Delta: ${selectedDelta.toFixed(2)}%) -> ALVO: ${targetCoin.symbol}`, 'trigger');
-
-        // --- REGRA 5: PILARES DE SEGURANÇA (Fail-Safe) ---
-        // Mantemos a segurança padrão (RSI, Book, Anti-Dump)
-        const security = await validateAlfaSecurity(client, targetCoin.symbol, targetCoin.price);
+        // Check Segurança Padrão
+        const security = await validateAlfaSecurity(client, bestCoin.symbol, bestCoin.price);
 
         if (security.ok) {
-            addServerLog(client.id, `🚀 EXECUTANDO COMPRA FERRARI: ${targetCoin.symbol} (Jump 10s: ${jump.toFixed(2)}%)`, 'buy');
-            await executeRealBuy(client, targetCoin.symbol, targetCoin.price);
+            addServerLog(client.id, `🚀 EXECUTANDO COMPRA FERRARI: ${bestCoin.symbol} (Pump Capturado!)`, 'buy');
+            await executeRealBuy(client, bestCoin.symbol, bestCoin.price);
         } else {
-            addServerLog(client.id, `❌ ENTRADA ABORTADA (SEGURANÇA): ${security.msg}`, 'info');
+            addServerLog(client.id, `❌ ENTRADA ABORTADA: ${security.msg}`, 'info');
         }
     }
 }
@@ -680,29 +648,24 @@ async function executeRealSell(client, symbol, reason) {
         // SALVAR NO DISCO
         saveDatabase();
 
-        // Check Pausa / Infinity Loop
+        // Check OBRIGATÓRIO de 3 Ciclos e 15 Minutos de Pausa
         if (client.operationsCount >= client.maxOpsBeforePause) {
-            if (client.isInfinityLoop) {
+            // "Após 3 ciclos com lucro de 0,6%, pausa de 15 minutos e entra-se no ciclo seguinte."
+            updateStatus(client, 'COOLDOWN');
+            addServerLog(client.id, `🔄 META DE 3 CICLOS CONCLUÍDA! Iniciando Pausa Programada de 15 Minutos.`, 'info');
+            setTimeout(() => {
                 client.operationsCount = 0;
                 updateStatus(client, 'SCANNING');
-                addServerLog(client.id, "∞ INFINITY LOOP: Ciclo de 3 concluído. Reiniciando sem pausa.", 'info');
-            } else {
-                updateStatus(client, 'COOLDOWN');
-                addServerLog(client.id, `Meta de ${client.maxOpsBeforePause} trades atingida. Pausa Longa de 10min para descanso.`, 'info');
-                setTimeout(() => {
-                    client.operationsCount = 0;
-                    updateStatus(client, 'SCANNING');
-                    addServerLog(client.id, "Retornando do descanso longo. Sniper Ativo.", 'info');
-                }, client.pauseDuration);
-            }
+                addServerLog(client.id, "▶️ FIM DA PAUSA DE 15 MIN. Retornando ciclo de 20s ativado.", 'info');
+            }, client.pauseDuration);
         } else {
-            // PAUSA ENTRE OPERAÇÕES (2 MINUTOS)
+            // PAUSA ENTRE OPERAÇÕES (2 MINUTOS padrão para descanso)
             updateStatus(client, 'COOLDOWN');
-            addServerLog(client.id, `Meta Individual Batida. Pausa de 2 min antes do próximo scan.`, 'info');
+            addServerLog(client.id, `✅ 1 Ciclo Concluído. Pausa de descanso rápida (2m) antes da próxima caça.`, 'info');
             setTimeout(() => {
                 updateStatus(client, 'SCANNING');
                 addServerLog(client.id, "Retornando da pausa pós-trade. Sniper Ativo.", 'info');
-            }, 120000); // 2 minutos fixos
+            }, 120000); // 2 minutos
         }
 
     } catch (e) {
@@ -768,7 +731,8 @@ app.get('/status', (req, res) => {
         logs: globalLogs, // Sempre retorna os logs globais
         top20: globalMarket.top20,
         coinJumps: globalMarket.coinJumps,
-        maxJump: globalMarket.maxJump
+        maxJump: globalMarket.maxJump,
+        lastCycleStartTime: globalMarket.lastCycleStartTime
     });
 });
 
