@@ -21,6 +21,12 @@ app.use((req, res, next) => {
     // Permite que o dashboard se conecte a si mesmo, ao Google Fonts e à Binance
     res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.binance.com; connect-src 'self' https://*.binance.com;");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    
+    // --- PREVENÇÃO DE CACHE DE NAVEGADOR ESTILIZADO PARA O CLIENTE FINAL ---
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    
     next();
 });
 
