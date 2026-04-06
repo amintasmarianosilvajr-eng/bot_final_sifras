@@ -1,3 +1,4 @@
+// FLUXO ALFA ENGINE v8.5.0 - SNIPER MODE ACTIVE 20s (MIN BAL: $10.70)
 const express = require('express');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
