@@ -198,16 +198,25 @@ async function fetchWithTimeout(resource, options = {}) {
 }
 
 function addServerLog(clientId, msg, type = 'info') {
-    const client = clients[clientId - 1];
-    if (!client) return;
-    const timestamp = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const clientPrefix = client.clientName ? `${client.clientName.toUpperCase()}` : `CLIENTE ${clientId}`;
-    const fullMsg = `${clientPrefix} / ${msg}`;
+    const time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    let prefix = 'SISTEMA';
+    let client = null;
+    
+    if (clientId) {
+        client = clients[clientId - 1];
+        if (client) {
+            prefix = client.clientName ? `${client.clientName.toUpperCase()}` : `CLIENTE ${clientId}`;
+        }
+    }
 
-    const logItem = { timestamp, msg: fullMsg, type };
+    const fullMsg = `${prefix} / ${msg}`;
+    const logItem = { timestamp: time, msg: fullMsg, type };
 
     // Log do cliente (para o PDF)
-    client.logs.unshift(logItem);
+    if (client) {
+        client.logs.unshift(logItem);
+        if (client.logs.length > 50) client.logs.pop();
+    }
     if (client.logs.length > 50) client.logs.pop();
 
     // Log Global (para o Dashboard)
@@ -426,10 +435,7 @@ async function validateAlfaSecurity(client, symbol, currentPrice) {
         const bookRatio = totalBids / totalAsks;
         if (bookRatio < 1.1) return { ok: false, msg: `Pressão de Venda no Book (Ratio: ${bookRatio.toFixed(2)})` };
 
-        // 5. CONFIRMAÇÃO DUPLA (Preço vs 10s atrás)
-        // Adaptado para usar o Price Snapshot único que não quebre a validação antiga
-        const historySnapshot = globalMarket.priceHistory[symbol];
-        if (!historySnapshot || currentPrice <= historySnapshot) return { ok: false, msg: 'Tendência de micro-queda identificada no tiro de 20s' };
+        // Remoção da regra de micro-queda que conflitava com a medição dos 20s absolutos
 
         addServerLog(client.id, `✅ ALFA APROVADO: RSI ${rsi.toFixed(1)} | Book ${bookRatio.toFixed(2)}x`, 'info');
         return { ok: true };
@@ -465,11 +471,12 @@ async function checkClientsForOpportunity(isCycleEnd) {
     }
 
     if (!bestCoin) {
-        console.log(`[ALFA 20s CYCLE END] Nenhuma moeda (2-10) fechou o tiro positivo.`);
+        // Enviar log de sistema nulo para mostrar ao usuário que o relógio bateu
+        addServerLog(null, `⏱️ CICLO 20s FECHADO: Nenhuma moeda(2-10) saltou com percentual positivo (Máx: ${maxVolPositive.toFixed(2)}%). Reiniciando...`, 'info');
         return;
     }
 
-    console.log(`[ALFA 20s PUMP] A Vencedora da Janela foi ${bestCoin.symbol} com +${maxVolPositive.toFixed(3)}%`);
+    addServerLog(null, `🎯 JANELA 20s FECHADA: Vencedora isolada foi ${bestCoin.symbol} (+${maxVolPositive.toFixed(3)}%)`, 'trigger');
 
     for (const client of clients) {
         if (client.status !== 'SCANNING') continue;
