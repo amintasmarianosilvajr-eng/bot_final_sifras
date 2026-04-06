@@ -65,9 +65,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota específica para o modo operacional (Dashboard)
+// Rota específica para o modo operacional (Dashboard v8.6.3)
 app.get('/operacional', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
+    res.sendFile(path.join(__dirname, 'operacional_v863.html'));
 });
 
 // --- SERVIR ARQUIVOS ESTÁTICOS (CONFIGURAÇÃO FINAL) ---
