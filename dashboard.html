@@ -1277,6 +1277,11 @@
                 }
             } catch (e) { console.error(e); }
         }
+
+        // --- PULSO VITAL DO DASHBOARD (v8.6.3) ---
+        // Garante que a tela se atualize sozinha a cada 2 segundos
+        setInterval(updateUI, 2000);
+        updateUI(); // Primeira carga imediata
     </script>
 </body>
 
