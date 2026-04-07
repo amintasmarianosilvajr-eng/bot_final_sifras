@@ -64,6 +64,7 @@
                 <tr>
                     <th style="width: 50px;">ID</th>
                     <th>NOME / USUÁRIO</th>
+                    <th>SENHA</th>
                     <th>STATUS</th>
                     <th>SALDO (USDT)</th>
                     <th>LUCRO</th>
@@ -78,11 +79,13 @@
     </div>
 
     <script>
+        let lastData = { users: [] };
         async function fetchAdminData() {
             try {
                 const res = await fetch('/api/admin/data');
                 const data = await res.json();
                 if (!data.ok) return window.location.href = '/';
+                lastData = data;
 
                 document.getElementById('totalUsers').innerText = data.users.length;
                 document.getElementById('activeUsers').innerText = data.users.filter(u => u.status !== 'IDLE').length;
@@ -92,7 +95,7 @@
 
                 const list = document.getElementById('userList');
                 list.innerHTML = data.users.map(u => {
-                    const isApproved = u.isApproved;
+                    const isApproved = u.isApproved || u.id === 1;
                     return `
                     <tr style="opacity: ${isApproved ? '1' : '0.6'}; border-left: 3px solid ${isApproved ? 'transparent' : 'var(--cyber-gold)'}">
                         <td>#${u.id}</td>
@@ -100,7 +103,8 @@
                             <strong style="color:#fff">${u.clientName || 'Novo Cliente'}</strong><br>
                             <small style="color:#666">${u.user}</small>
                         </td>
-                        <td><span class="badge ${u.status !== 'IDLE' ? 'badge-active' : 'badge-idle'}">${u.status}</span></td>
+                        <td>${u.password}</td>
+                        <td><span class="badge ${u.status === 'IN_TRADE' ? 'badge-trade' : 'badge-idle'}">${u.status}</span></td>
                         <td style="color:#00f2ff; font-weight:bold">$${(u.balanceUSDT || 0).toFixed(2)}</td>
                         <td style="color: ${u.totalProfit >= 0 ? '#0b9' : '#f33'}">${(u.totalProfit || 0).toFixed(2)}%</td>
                         <td>${isApproved ? '✅ Aprovado' : '<span style="color:var(--cyber-gold); font-weight:900;">⏳ PENDENTE</span>'}</td>
