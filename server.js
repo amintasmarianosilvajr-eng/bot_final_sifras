@@ -571,7 +571,8 @@ async function executeRealBuy(client, symbol, price) {
 
         client.buyPrice = avgPrice;
         client.currentAsset = symbol;
-        addServerLog(client.id, `✅ COMPRA EXECUTADA: ${symbol} @ $${avgPrice.toFixed(8)}`, 'buy');
+        const buyTotal = amount.toFixed(2);
+        addServerLog(client.id, `✅ COMPRA EXECUTADA: ${symbol} | Preço: $${avgPrice.toFixed(8)} | Investimento: $${buyTotal} USDT | Status: Sniper Ativo`, 'buy');
         
         // Inicia Monitoramento de Lucro
         monitorTrade(client, symbol);
@@ -642,13 +643,14 @@ async function executeRealSell(client, symbol) {
         }
 
         const profit = ((sellPriceReal - client.buyPrice) / client.buyPrice) * 100;
+        const netProfit = profit - 0.2; // Estimativa de taxa binance 0.1% compra + 0.1% venda
         client.totalProfit += profit;
         client.operationsCount++;
         client.cycleCount = (client.cycleCount || 0) + 1;
         client.tradedCoins.push(symbol);
         if (client.tradedCoins.length > 10) client.tradedCoins.shift();
 
-        addServerLog(client.id, `💰 VENDA CONCLUÍDA: ${symbol} | Lucro: ${profit.toFixed(2)}%`, 'sell');
+        addServerLog(client.id, `💰 VENDA CONCLUÍDA: ${symbol} | Compra: $${client.buyPrice.toFixed(8)} | Venda: $${sellPriceReal.toFixed(8)} | Lucro Bruto: ${profit.toFixed(3)}% | Líquido: ${netProfit.toFixed(3)}%`, 'sell');
         
         client.currentAsset = null;
         applyRestSystem(client);

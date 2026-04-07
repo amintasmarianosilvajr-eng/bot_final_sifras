@@ -368,6 +368,10 @@
             <!-- Dinamicamente preenchido -->
         </div>
     </div>
+    <div id="profitOverlay">
+        <img src="https://i.ibb.co/L6v3m3N/FLUXO-ALFA-LOGO.png" class="pulsing-logo" onerror="this.src='/favicon.ico';">
+        <div class="profit-text">LUCRO ALFA NÃO BINÁRIO ATINGIDO</div>
+    </div>
     <div class="container">
         <header class="top-navbar"
             style="position: relative; display: flex; justify-content: center; align-items: center; padding: 1.5rem;">
@@ -696,7 +700,15 @@
             const div = document.createElement('div');
             div.className = `log-line ${type ? 'log-' + type : ''}`;
             div.innerHTML = `[${time}] ${msg}`;
-            const box = document.getElementById('logBox');
+            function showProfitCelebration() {
+            const overlay = document.getElementById('profitOverlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 8000);
+        }
+
+        const box = document.getElementById('logBox');
             box.prepend(div);
         }
 
@@ -727,11 +739,20 @@
             location.reload();
         }
 
+        let lastOpCount = -1;
+
         async function updateUI() {
             try {
                 const url = monitoredClientId ? `${API_URL}/status?clientId=${monitoredClientId}` : `${API_URL}/status`;
                 const res = await fetch(url);
-                const state = await res.json();
+                const data = await res.json();
+                lastData = data;
+
+                // DETECÇÃO DE NOVO LUCRO
+                if (lastOpCount !== -1 && data.operationsCount > lastOpCount) {
+                    showProfitCelebration();
+                }
+                lastOpCount = data.operationsCount;
 
                 // Atualizar Hub de Status (10 clientes)
                 const tradesList = document.getElementById('activeTradesList');
