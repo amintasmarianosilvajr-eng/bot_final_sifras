@@ -615,7 +615,17 @@ async function executeRealSell(client, symbol) {
             }
         }
 
-        const profit = ((parseFloat(sellOrder.fills[0].price) - client.buyPrice) / client.buyPrice) * 100;
+        // Cálculo Preciso de Safra (Average Fill Price)
+        let sellPriceReal = 0;
+        if (sellOrder.fills && sellOrder.fills.length > 0) {
+            const rev = sellOrder.fills.reduce((s, f) => s + (parseFloat(f.price) * parseFloat(f.qty)), 0);
+            const qty = sellOrder.fills.reduce((s, f) => s + parseFloat(f.qty), 0);
+            sellPriceReal = rev / qty;
+        } else {
+            sellPriceReal = client.buyPrice * 1.01; // Fallback caso binance não retorne feeds (1% alvo)
+        }
+
+        const profit = ((sellPriceReal - client.buyPrice) / client.buyPrice) * 100;
         client.totalProfit += profit;
         client.operationsCount++;
         client.cycleCount = (client.cycleCount || 0) + 1;
