@@ -602,8 +602,17 @@ async function executeRealSell(client, symbol) {
         });
 
         if (sellOrder.error) {
-            addServerLog(client.id, `❌ ERRO VENDA: ${sellOrder.msg}`, 'error');
-            return;
+            // ANTI-GHOST SELL: Verifica se a venda realmente falhou ou se foi apenas um timeout de rede
+            const checkAcc = await binanceRequest(client, '/api/v3/account');
+            const coinAsset = symbol.replace('USDT', '');
+            const stillHasCoin = checkAcc.balances?.find(b => b.asset === coinAsset && parseFloat(b.free) > 0);
+            
+            if (!stillHasCoin) {
+                addServerLog(client.id, `✅ Venda assumida por fail-safe (Timeout Rede mascarou sucesso Binance)!`, 'sell');
+            } else {
+                addServerLog(client.id, `❌ ERRO VENDA: ${sellOrder.msg}`, 'error');
+                return;
+            }
         }
 
         const profit = ((parseFloat(sellOrder.fills[0].price) - client.buyPrice) / client.buyPrice) * 100;
@@ -725,6 +734,12 @@ app.get('/status', (req, res) => {
 app.post('/api/register', (req, res) => {
     const { user, pass } = req.body;
     if (!user || !pass) return res.json({ ok: false, msg: 'Dados incompletos' });
+    
+    // PADRONIZAÇÃO OBRIGATÓRIA @GMAIL NO BACKEND
+    if (!user.toLowerCase().endsWith('@gmail.com')) {
+        return res.json({ ok: false, msg: 'Apenas endereços @gmail.com são permitidos.' });
+    }
+
     const exists = clients.find(c => c.username === user);
     if (exists) return res.json({ ok: false, msg: 'Usuário já existe' });
     const newId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) + 1 : 1;
