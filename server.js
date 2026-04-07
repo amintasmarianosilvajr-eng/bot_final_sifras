@@ -498,11 +498,15 @@ async function checkClientsForOpportunity() {
 
     for (const coin of pool) {
         const symbol = coin.symbol.replace('USDT', '');
-        const volumeOK = (parseFloat(coin.quoteVolume) || 0) >= 1000000;
-        const notBlacklisted = !blacklist.includes(symbol);
+        const volNum = parseFloat(coin.quoteVolume) || 0;
+        const jump = coin.lastUpdateJump || 0;
         
-        if (volumeOK && notBlacklisted) {
-            const jump = coin.lastUpdateJump || 0; // Calculado no Radar a cada 20s
+        const isBlacklisted = blacklist.includes(symbol);
+        const volumeOK = volNum >= 1000000;
+        
+        console.log(`[CHECK] ${symbol} | Jump: ${jump.toFixed(3)}% | Vol: $${(volNum/1000).toFixed(0)}k | Blacklist: ${isBlacklisted}`);
+
+        if (volumeOK && !isBlacklisted && jump > 0) {
             if (jump > maxJump) {
                 maxJump = jump;
                 bestCoin = coin;
@@ -510,7 +514,10 @@ async function checkClientsForOpportunity() {
         }
     }
 
-    if (!bestCoin || maxJump <= 0) return;
+    if (!bestCoin) {
+        console.log(`[CYCLE END] Nenhuma moeda do Ranking #2-15 atendeu aos filtros de Volume (>1M) e Jump (>0).`);
+        return;
+    }
 
     for (const client of clients) {
         if (client.status !== 'SCANNING' || !client.isApproved) continue;
