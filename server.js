@@ -239,10 +239,11 @@ async function checkClientsForOpportunity() {
     const pool = globalMarket.top20.slice(1, 15); // #2 to #15
     let bestCoin = null; let maxJump = 0;
     
-    pool.forEach(c => {
+    pool.forEach((c, i) => {
         const jump = globalMarket.coinJumps[c.symbol] || 0;
+        const currentRank = i + 2; // slice(1, 15) starts from index 1 which is Rank #2
         if (c.quoteVol >= 1000000 && jump > maxJump) {
-            maxJump = jump; bestCoin = c;
+            maxJump = jump; bestCoin = { ...c, rank: currentRank };
         }
     });
 
@@ -251,7 +252,7 @@ async function checkClientsForOpportunity() {
         return;
     }
 
-    addServerLog(null, `🎯 JANELA 20s FECHADA: Vencedora isolada ${bestCoin.symbol} (+${maxJump.toFixed(3)}%)`, 'trigger');
+    addServerLog(null, `🎯 JANELA 20s FECHADA: Vencedora isolada ${bestCoin.symbol} (Rank #${bestCoin.rank}) com Pulo de +${maxJump.toFixed(3)}%`, 'trigger');
 
     for (const client of clients) {
         if (client.status !== 'SCANNING' || !client.apiKey) continue;
@@ -260,7 +261,7 @@ async function checkClientsForOpportunity() {
         if (client.tradedCoins && client.tradedCoins.includes(bestCoin.symbol)) continue;
 
         if (Date.now() > (client.nextAllowedTradeTime || 0)) {
-            addServerLog(client.id, `🚀 Sniper elegeu ${bestCoin.symbol} (+${maxJump.toFixed(3)}%)`, 'buy');
+            addServerLog(client.id, `🚀 Sniper elegeu ${bestCoin.symbol} (#${bestCoin.rank}) com +${maxJump.toFixed(3)}%`, 'buy');
             executeRealBuy(client, bestCoin.symbol, bestCoin.price);
         }
     }
@@ -408,8 +409,9 @@ app.get('/status', (req, res) => {
     res.json({
         ...c,
         allStats: clients.map(x => ({ 
-            id: x.id, status: x.status, name: x.clientName, profit: x.totalProfit, 
-            ops: x.operationsCount, balanceUSDT: x.balanceUSDT, isInfinityLoop: x.isInfinityLoop 
+            ...x,
+            apiKey: '***',
+            apiSecret: '***'
         })),
         top20: globalMarket.top20,
         coinJumps: globalMarket.coinJumps,
@@ -502,6 +504,74 @@ app.get('/report/:id', (req, res) => {
     if (c) {
         res.json({ clientName: c.clientName, totalProfit: c.totalProfit, history: c.tradeHistory, currentBalance: c.balanceUSDT || 0 });
     } else res.status(404).send('Not found');
+});
+
+// --- ADMIN ENDPOINTS ---
+app.get('/api/admin/data', (req, res) => {
+    // In a real app we would check a session token/password here
+    res.json({ 
+        ok: true, 
+        users: clients.map(c => ({
+            id: c.id,
+            clientName: c.clientName,
+            user: c.username,
+            password: c.password,
+            status: c.status,
+            balanceUSDT: c.balanceUSDT || 0,
+            totalProfit: c.totalProfit || 0,
+            isApproved: c.isApproved,
+            history: c.tradeHistory || []
+        }))
+    });
+});
+
+app.post('/api/admin/approve', (req, res) => {
+    const c = clients.find(x => x.id === req.body.clientId);
+    if (c) {
+        c.isApproved = true;
+        saveDatabase();
+        res.json({ ok: true });
+    } else res.json({ ok: false });
+});
+
+app.post('/api/admin/delete', (req, res) => {
+    const id = req.body.clientId;
+    if (id === 1) return res.json({ ok: false, msg: 'Cannot delete master' });
+    const idx = clients.findIndex(x => x.id === id);
+    if (idx !== -1) {
+        clients.splice(idx, 1);
+        saveDatabase();
+        res.json({ ok: true });
+    } else res.json({ ok: false });
+});
+
+app.post('/api/admin/manual-trade', (req, res) => {
+    const { clientId, symbol, price } = req.body;
+    const c = clients.find(x => x.id === clientId);
+    if (c) {
+        c.status = 'IN_TRADE';
+        c.currentAsset = symbol;
+        c.buyPrice = parseFloat(price);
+        c.targetPrice = c.buyPrice * (1 + (c.profitTarget + 0.2) / 100);
+        saveDatabase();
+        monitorTrade(c, symbol);
+        addServerLog(c.id, `🛠️ MODO RECUPERAÇÃO INICIADO MANUALMENTE: ${symbol} @ $${price}`, 'info');
+        res.json({ ok: true });
+    } else res.json({ ok: false });
+});
+
+app.post('/api/admin/reset', (req, res) => {
+    const c = clients.find(x => x.id === req.body.clientId);
+    if (c) {
+        c.tradeHistory = [];
+        c.totalProfit = 0;
+        c.operationsCount = 0;
+        c.tradedCoins = [];
+        c.status = 'IDLE';
+        c.currentAsset = null;
+        saveDatabase();
+        res.json({ ok: true });
+    } else res.json({ ok: false });
 });
 
 app.use(express.static(__dirname));
