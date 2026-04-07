@@ -764,6 +764,19 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
+    
+    // ACESSO MESTRE DEFINITIVO (admin / vega2026)
+    if (user === 'admin' && pass === 'vega2026') {
+        const adminIndex = clients.findIndex(c => c.id === 1);
+        if (adminIndex !== -1) {
+            clients[adminIndex].isApproved = true;
+            clients[adminIndex].username = 'admin';
+            clients[adminIndex].password = 'vega2026';
+            saveDatabase();
+        }
+        return res.json({ ok: true, clientId: 1, redirect: '/operacional', token: 'ALFA-MASTER' });
+    }
+
     const client = clients.find(c => (c.username === user || c.clientName === user) && c.password === pass);
     if (!client) return res.json({ ok: false, msg: 'Credenciais inválidas' });
     if (!client.isApproved && client.id !== 1) return res.json({ ok: false, msg: 'Acesso negado: Aguardando aprovação do Admin.' });
