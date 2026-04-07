@@ -399,18 +399,22 @@ setInterval(async () => {
         // 5. ATUALIZAR SALDOS EM TEMPO REAL (ASSÍNCRONO - SEM BLOQUEIO)
         // Movi para fora do loop principal para zero lag no motor de 20s.
         
-        // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO)
-        await checkClientsForOpportunity();
+            // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO - CICLO DE 20S)
+            if (isCycleEnd) {
+                // Atribui os jumps calculados para a lógica de compra
+                globalMarket.top20.forEach(coin => {
+                    coin.lastUpdateJump = globalMarket.coinJumps[coin.symbol] || 0;
+                });
 
-        // Se atiramos, o ciclo se renova imediatamente para a próxima conta de 20s e RECARREGA OS PREÇOS ALVO
-        if (isCycleEnd) {
-            globalMarket.lastCycleStartTime = now;
-            globalMarket.countdownRemaining = 20;
-            // Atualiza a Snapshot DEPOIS do gatilho ter sido puxado para não bugar a segurança
-            for (const coin of globalMarket.top20) {
-                globalMarket.priceHistory[coin.symbol] = coin.price;
+                await checkClientsForOpportunity();
+                
+                // Reinicia o Ciclo
+                globalMarket.lastCycleStartTime = now;
+                globalMarket.countdownRemaining = 20;
+                for (const coin of globalMarket.top20) {
+                    globalMarket.priceHistory[coin.symbol] = coin.price;
+                }
             }
-        }
 
     } catch (e) {
         console.error('[SYSTEM HEARTBEAT ERROR]', e.message);
