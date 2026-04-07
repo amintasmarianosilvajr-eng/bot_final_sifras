@@ -73,46 +73,59 @@ app.get('/operacional', (req, res) => {
 // --- SERVIR ARQUIVOS ESTÁTICOS (CONFIGURAÇÃO FINAL) ---
 app.use(express.static(__dirname));
 
-// --- CONFIGURAÇÃO DOS CLIENTES (DINÂMICO) ---
-let clients = [];
-
-// Template do Operacional "Virgem" (ESTRATÉGIA INTOCADA POR DETERMINAÇÃO)
-const VIRGIN_TEMPLATE = {
-    username: '',
-    password: '',
-    clientName: '',
-    apiKey: '',
-    apiSecret: '',
-    entryThreshold: 0.3,
-    profitTarget: 0.6,
-    stopLoss: 4.0,
-    maxOpsBeforePause: 3,
-    pauseDuration: 900000,
-    interTradePause: 120000,
-    status: 'IDLE',
-    operationsCount: 0,
-    currentAsset: null,
-    entryPrice: 0,
-    buyPrice: 0,
-    tradeStartTime: 0,
-    lastTradeDuration: '',
-    maxJump: 0,
-    pingCount: 0,
-    logs: [],
-    tradedCoins: [],
-    lastSoldSymbol: null,
-    lastSoldTime: 0,
-    balanceUSDT: 0,
-    totalProfit: 0,
-    tradeHistory: [],
-    buyPercentage: 1.0,
-    isInfinityLoop: false
-};
+// --- CONFIGURAÇÃO DOS CLIENTES ---
+const clients = [];
+for (let i = 0; i < 1; i++) {
+    clients.push({
+        id: i + 1,
+        clientName: '',
+        apiKey: '',
+        apiSecret: '',
+        entryThreshold: 0.3,
+        profitTarget: 0.6,
+        stopLoss: 4.0,
+        maxOpsBeforePause: 3,
+        pauseDuration: 900000,
+        interTradePause: 120000,
+        status: 'IDLE',
+        operationsCount: 0,
+        currentAsset: null,
+        entryPrice: 0,
+        buyPrice: 0,
+        tradeStartTime: 0,
+        lastTradeDuration: '',
+        maxJump: 0,
+        pingCount: 0,
+        logs: [],
+        tradedCoins: [],
+        lastSoldSymbol: null,
+        lastSoldTime: 0,
+        balanceUSDT: 0,
+        totalProfit: 0,
+        tradeHistory: [],
+        buyPercentage: 1.0,
+        isInfinityLoop: false
+    });
+}
 
 function saveDatabase() {
     try {
-        // Remove senhas no log, mas salva no arquivo
-        fs.writeFileSync(DATA_FILE, JSON.stringify(clients, null, 2));
+        const data = clients.map(c => ({
+            id: c.id,
+            clientName: c.clientName,
+            apiKey: c.apiKey,
+            apiSecret: c.apiSecret,
+            totalProfit: c.totalProfit,
+            tradeHistory: c.tradeHistory,
+            tradedCoins: c.tradedCoins || [],
+            status: c.status,
+            currentAsset: c.currentAsset,
+            buyPrice: c.buyPrice,
+            entryPrice: c.entryPrice,
+            buyPercentage: c.buyPercentage || 1.0,
+            isInfinityLoop: c.isInfinityLoop || false
+        }));
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
     } catch (e) { console.error('Erro ao salvar DB:', e.message); }
 }
 
@@ -120,25 +133,45 @@ function loadDatabase() {
     if (fs.existsSync(DATA_FILE)) {
         try {
             const data = JSON.parse(fs.readFileSync(DATA_FILE));
-            clients = data.map(saved => ({
-                ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), // Base limpa
-                ...saved // Sobrescreve com dados do DB
-            }));
-            console.log(`✅ Banco de dados carregado: ${clients.length} clientes ativos.`);
+            data.forEach(saved => {
+                const client = clients[saved.id - 1];
+                if (client) {
+                    client.clientName = saved.clientName || '';
+                    client.apiKey = saved.apiKey || '';
+                    client.apiSecret = saved.apiSecret || '';
+                    client.totalProfit = saved.totalProfit || 0;
+                    client.tradeHistory = saved.tradeHistory || [];
+                    client.tradedCoins = saved.tradedCoins || [];
+                    client.buyPercentage = saved.buyPercentage || 1.0;
+                    client.isInfinityLoop = saved.isInfinityLoop || false;
+
+                    // Lógica de Recuperação Automática (Modo de Segurança Alfa v8.6.3)
+                    if (saved.status === 'IN_TRADE' && saved.currentAsset) {
+                        // Se há uma operação real aberta, o motor RECUPERA para não te deixar no prejuízo
+                        client.status = 'IN_TRADE';
+                        client.currentAsset = saved.currentAsset;
+                        client.buyPrice = saved.buyPrice;
+                        client.entryPrice = saved.entryPrice;
+                        client.tradeStartTime = Date.now();
+                        addServerLog(client.id, `♻️ OPERAÇÃO RECUPERADA: ${client.currentAsset} sob vigilância.`, 'info');
+                        monitorTrade(client, client.currentAsset, client.buyPrice);
+                    } else {
+                        // PARA TODO O RESTO: O motor aguarda o seu comando manual
+                        client.status = 'IDLE'; 
+                        addServerLog(client.id, `✅ SISTEMA CARREGADO: Motor em IDLE (Aguardando Comando Manual).`, 'info');
+                    }
+                }
+            });
+            console.log('✅ Banco de dados carregado: Lucros e Históricos restaurados.');
             
-            // Retomada Automática Alfa
+            // --- PROTOCOLO DE RESGATE (RESUME): Retoma monitoramento de trades ativos após reinicialização ---
             clients.forEach(c => {
                 if (c.status === 'IN_TRADE' && c.currentAsset) {
-                    console.log(`[RESUME] Retomando ${c.currentAsset} para ID ${c.id}`);
+                    console.log(`[RESUME] Retomando monitoramento de ${c.currentAsset} para o Cliente ${c.id}`);
                     monitorTrade(c, c.currentAsset, c.buyPrice);
                 }
             });
-        } catch (e) { console.error('Erro ao carregar DB:', e.message); clients = []; }
-    } else {
-        // Cria admin padrão no primeiro boot se não houver DB
-        const admin = { ...VIRGIN_TEMPLATE, id: 1, username: 'admin', password: 'alfa777', clientName: 'Master Admin' };
-        clients.push(admin);
-        saveDatabase();
+        } catch (e) { console.error('Erro ao carredar DB:', e.message); }
     }
 }
 loadDatabase();
@@ -392,9 +425,19 @@ setInterval(async () => {
 
         globalMarket.lastUpdate = now;
 
-        // 5. ATUALIZAR SALDOS EM TEMPO REAL (ASSÍNCRONO - SEM BLOQUEIO)
-        // Movi para fora do loop principal para zero lag no motor de 20s.
-        
+        // 5. ATUALIZAR SALDOS EM TEMPO REAL
+        for (const client of clients) {
+            if (client.apiKey && client.apiSecret) {
+                try {
+                    const account = await binanceRequest(client, '/api/v3/account');
+                    if (account && account.balances) {
+                        const usdt = account.balances.find(b => b.asset === 'USDT');
+                        if (usdt) client.balanceUSDT = parseFloat(usdt.free) + parseFloat(usdt.locked);
+                    }
+                } catch (e) { }
+            }
+        }
+
         // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO)
         await checkClientsForOpportunity(isCycleEnd);
 
@@ -411,22 +454,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('[SYSTEM HEARTBEAT ERROR]', e.message);
     }
-}, 2500); // Frequência de 2.5s para o Ranking reagir rápido
-
-// --- LOOP INDEPENDENTE DE SALDOS (PARA NÃO ATRASAR O MOTOR) ---
-setInterval(async () => {
-    for (const client of clients) {
-        if (client.apiKey && client.apiSecret && client.status !== 'IDLE') {
-            try {
-                const account = await binanceRequest(client, '/api/v3/account');
-                if (account && account.balances) {
-                    const usdt = account.balances.find(b => b.asset === 'USDT');
-                    if (usdt) client.balanceUSDT = parseFloat(usdt.free) + parseFloat(usdt.locked);
-                }
-            } catch (e) { }
-        }
-    }
-}, 8000); // Atualiza saldo a cada 8s em background
+}, 2500); // Frequência de 2.5s para o Ranking e Saldos reagirem rápido
 
 async function validateAlfaSecurity(client, symbol, currentPrice) {
     try {
@@ -763,26 +791,11 @@ app.post('/stop', (req, res) => {
 app.get('/status', (req, res) => {
     globalPingCount++;
     const requestedId = req.query.clientId ? parseInt(req.query.clientId) : null;
-    
-    // Lista todos os IDs para o HUB do operacional
-    const allStats = clients.map(c => ({
-        id: c.id,
-        name: c.clientName,
-        status: c.status,
-        balanceUSDT: c.balanceUSDT,
-        currentAsset: c.currentAsset,
-        currentPrice: c.currentPrice || 0,
-        buyPrice: c.buyPrice || 0,
-        isInfinityLoop: c.isInfinityLoop || false,
-        buyPercentage: c.buyPercentage || 1.0,
-        apiKey: c.apiKey ? '********' : '', // Segurança: Nunca enviar chaves reais no status global
-        apiSecret: c.apiSecret ? '********' : ''
-    }));
-
     let activeClient;
-    if (requestedId) {
-        activeClient = clients.find(c => c.id === requestedId);
+    if (requestedId && clients[requestedId - 1]) {
+        activeClient = clients[requestedId - 1];
     } else {
+        // Prioridade automática: Quem está em TRADE -> Quem está SCANNING -> Cliente 1
         activeClient = clients.find(c => c.status === 'IN_TRADE') ||
             clients.find(c => c.status === 'SCANNING') ||
             clients[0];
@@ -790,70 +803,12 @@ app.get('/status', (req, res) => {
 
     // Retorna os dados do cliente selecionado + o status resumido de TODOS (para o Hub)
     res.json({
-        id: activeClient.id,
-        name: activeClient.clientName,
-        status: activeClient.status,
-        logs: activeClient.logs || [],
-        totalProfit: activeClient.totalProfit || 0,
-        opsCount: activeClient.operationsCount || 0,
-        currentAsset: activeClient.currentAsset,
-        buyPrice: activeClient.buyPrice,
-        entryPrice: activeClient.entryPrice,
-        currentPrice: activeClient.currentPrice || 0,
-        history: activeClient.tradeHistory || [],
-        balanceUSDT: activeClient.balanceUSDT || 0,
-        buyPercentage: activeClient.buyPercentage || 1.0,
-        isInfinityLoop: activeClient.isInfinityLoop || false,
-        allStats: allStats,
-        globalLogs: globalLogs,
-        market: globalMarket
-    });
-});
-
-// --- NOVAS ROTAS DE AUTENTICAÇÃO E ADMIN ---
-
-app.post('/api/register', (req, res) => {
-    const { user, pass } = req.body;
-    if (!user || !pass) return res.json({ ok: false, msg: 'Dados incompletos' });
-    
-    const exists = clients.find(c => c.username === user);
-    if (exists) return res.json({ ok: false, msg: 'Usuário já existe' });
-
-    const newId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) + 1 : 1;
-    const newClient = { 
-        ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), 
-        id: newId, 
-        username: user, 
-        password: pass,
-        clientName: `Operacional #${newId}`
-    };
-
-    clients.push(newClient);
-    saveDatabase();
-    console.log(`[AUTH] Novo usuário registrado: ${user} (ID: ${newId})`);
-    res.json({ ok: true });
-});
-
-app.post('/api/login', (req, res) => {
-    const { user, pass } = req.body;
-    const client = clients.find(c => (c.username === user || c.clientName === user) && c.password === pass);
-
-    if (client) {
-        res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
-    } else {
-        res.json({ ok: false, msg: 'Credenciais inválidas' });
-    }
-});
-
-app.get('/api/admin/data', (req, res) => {
-    // Retorna dados simplificados para o painel admin
-    res.json({ 
-        ok: true, 
-        users: clients.map(c => ({
+        ...activeClient,
+        viewingClientId: activeClient.id,
+        allStats: clients.map(c => ({
             id: c.id,
-            user: c.username,
-            clientName: c.clientName,
             status: c.status,
+            name: c.clientName,
             ops: c.operationsCount,
             profit: c.totalProfit,
             currentAsset: c.currentAsset,

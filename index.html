@@ -1,370 +1,123 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FLUXO ALFA - Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600&display=swap"
-        rel="stylesheet">
+    <title>FLUXO ALFA - Portal de Acesso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #00c8ff;
+            --secondary: #0088cc;
+            --bg-dark: #0a0a0a;
+            --glass: rgba(20, 20, 20, 0.85);
         }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+            color: white;
+            font-family: 'Outfit', sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Outfit', sans-serif;
-            position: relative;
             overflow: hidden;
+            position: relative;
         }
-
-        /* Efeito de fundo animado */
+        /* Efeito de Partículas Simulado */
         body::before {
             content: '';
             position: absolute;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(0, 200, 255, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 70% 50%, rgba(0, 200, 255, 0.02) 0%, transparent 50%);
-            animation: pulse 8s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: translate(0, 0);
-                opacity: 0.5;
-            }
-
-            50% {
-                transform: translate(-10%, -10%);
-                opacity: 0.8;
-            }
-        }
-
-        .login-container {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-        }
-
-        .header-text {
-            margin-bottom: 3rem;
-        }
-
-        .title-main {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: #00c8ff;
-            text-shadow: 0 0 40px rgba(0, 200, 255, 0.8),
-                0 0 80px rgba(0, 200, 255, 0.6),
-                0 0 120px rgba(0, 200, 255, 0.4);
-            letter-spacing: 8px;
-            margin-bottom: 1rem;
-            animation: glow 3s ease-in-out infinite;
-        }
-
-        @keyframes glow {
-
-            0%,
-            100% {
-                text-shadow: 0 0 40px rgba(0, 200, 255, 0.8),
-                    0 0 80px rgba(0, 200, 255, 0.6),
-                    0 0 120px rgba(0, 200, 255, 0.4);
-            }
-
-            50% {
-                text-shadow: 0 0 60px rgba(0, 200, 255, 1),
-                    0 0 100px rgba(0, 200, 255, 0.8),
-                    0 0 140px rgba(0, 200, 255, 0.6);
-            }
-        }
-
-        .subtitle {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 300;
-            color: #00c8ff;
-            text-shadow: 0 0 20px rgba(0, 200, 255, 0.6);
-            letter-spacing: 3px;
-            opacity: 0.9;
-        }
-
-        .login-box {
-            background: rgba(20, 20, 20, 0.85);
-            border: 2px solid rgba(0, 200, 255, 0.3);
-            border-radius: 24px;
-            padding: 3rem 4rem;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 60px rgba(0, 200, 255, 0.2),
-                inset 0 0 40px rgba(0, 200, 255, 0.05);
-            min-width: 450px;
-            position: relative;
-        }
-
-        .login-box::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg,
-                    transparent 0%,
-                    rgba(0, 200, 255, 0.1) 50%,
-                    transparent 100%);
-            border-radius: 24px;
-            z-index: -1;
-            animation: borderGlow 3s linear infinite;
-        }
-
-        @keyframes borderGlow {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .login-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #00c8ff;
-            margin-bottom: 2rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .input-group {
-            margin-bottom: 2rem;
-        }
-
-        .input-label {
-            display: block;
-            font-size: 0.85rem;
-            color: #00c8ff;
-            margin-bottom: 0.8rem;
-            text-align: left;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .input-field {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(0, 200, 255, 0.3);
-            border-radius: 12px;
-            color: #00c8ff;
-            font-size: 1.1rem;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 2px;
-            outline: none;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .input-field:focus {
-            border-color: #00c8ff;
-            box-shadow: 0 0 20px rgba(0, 200, 255, 0.4),
-                inset 0 0 10px rgba(0, 200, 255, 0.1);
-            background: rgba(0, 0, 0, 0.7);
-        }
-
-        .input-field::placeholder {
-            color: rgba(0, 200, 255, 0.3);
-            letter-spacing: 1px;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 1.2rem;
-            background: linear-gradient(135deg, #00c8ff 0%, #0088cc 100%);
-            border: none;
-            border-radius: 12px;
-            color: #000;
-            font-size: 1.1rem;
-            font-weight: 900;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 3px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            box-shadow: 0 0 30px rgba(0, 200, 255, 0.5);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-login::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s ease;
+            background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+            opacity: 0.1;
         }
-
-        .btn-login:hover::before {
-            left: 100%;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 50px rgba(0, 200, 255, 0.8);
-        }
-
-        .btn-login:active {
-            transform: translateY(0);
-        }
-
-        .error-message {
-            color: #ff4444;
-            font-size: 0.9rem;
-            margin-top: 1rem;
-            display: none;
-            text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            25% {
-                transform: translateX(-10px);
-            }
-
-            75% {
-                transform: translateX(10px);
-            }
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        /* Partículas de fundo */
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: #00c8ff;
-            border-radius: 50%;
-            opacity: 0.3;
-            animation: float 10s infinite ease-in-out;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0) translateX(0);
-            }
-
-            50% {
-                transform: translateY(-100px) translateX(50px);
-            }
-        }
+        .container { position: relative; z-index: 10; width: 100%; max-width: 450px; padding: 20px; }
+        .logo-area { text-align: center; margin-bottom: 40px; }
+        .logo-title { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: var(--primary); text-shadow: 0 0 20px rgba(0, 200, 255, 0.5); letter-spacing: 5px; margin-bottom: 5px; }
+        .card { background: var(--glass); border: 1px solid rgba(0, 200, 255, 0.2); border-radius: 24px; padding: 40px; backdrop-filter: blur(20px); box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
+        .card::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--primary), transparent); animation: sweep 3s infinite; }
+        @keyframes sweep { 0% { left: -100%; } 100% { left: 100%; } }
+        .tabs { display: flex; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tab { flex: 1; text-align: center; padding: 15px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; color: #555; transition: 0.3s; letter-spacing: 2px; }
+        .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); text-shadow: 0 0 10px rgba(0, 200, 255, 0.5); }
+        .input-group { margin-bottom: 25px; }
+        .input-group label { display: block; font-size: 0.7rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
+        .input-group input { width: 100%; background: rgba(0,0,0,0.6); border: 1px solid rgba(0, 200, 255, 0.1); padding: 14px; border-radius: 12px; color: white; outline: none; transition: 0.3s; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(0, 200, 255, 0.15); background: rgba(0,0,0,0.8); }
+        .btn { width: 100%; padding: 18px; background: linear-gradient(90deg, var(--primary), var(--secondary)); border: none; border-radius: 12px; color: #000; font-weight: 900; font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.9rem; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0, 200, 255, 0.4); filter: brightness(1.1); }
+        #msg { text-align: center; margin-top: 20px; font-size: 0.85rem; min-height: 20px; font-weight: 500; }
+        .footer-note { text-align: center; margin-top: 30px; color: #444; font-size: 0.7rem; letter-spacing: 1px; }
     </style>
 </head>
-
 <body>
-    <!-- Partículas decorativas -->
-    <div class="particle" style="top: 10%; left: 20%; animation-delay: 0s;"></div>
-    <div class="particle" style="top: 30%; left: 80%; animation-delay: 2s;"></div>
-    <div class="particle" style="top: 60%; left: 10%; animation-delay: 4s;"></div>
-    <div class="particle" style="top: 80%; left: 70%; animation-delay: 6s;"></div>
-    <div class="particle" style="top: 20%; left: 50%; animation-delay: 1s;"></div>
-    <div class="particle" style="top: 70%; left: 40%; animation-delay: 3s;"></div>
-
-    <div class="login-container">
-        <div class="header-text">
-            <div class="title-main">SIFRAS INVEST - FLUXO ALFA</div>
-            <div class="subtitle">POWER COPY TRADE</div>
+    <div class="container">
+        <div class="logo-area">
+            <h1 class="logo-title">FLUXO ALFA</h1>
+            <p style="color: #444; letter-spacing: 4px; font-size: 0.75rem; font-family: 'Orbitron';">Sifras Invest v8.6</p>
         </div>
-
-        <div class="login-box">
-            <div class="login-title">Acesso Restrito</div>
-
-            <form id="loginForm" onsubmit="return handleLogin(event)">
+        <div class="card">
+            <div class="tabs">
+                <div id="tab-login" class="tab active" onclick="switchTab('login')">ENTRAR</div>
+                <div id="tab-register" class="tab" onclick="switchTab('register')">REGISTRAR</div>
+            </div>
+            <form id="authForm">
                 <div class="input-group">
-                    <label class="input-label">Senha de Acesso</label>
-                    <input type="password" id="passwordInput" class="input-field" placeholder="••••••••"
-                        autocomplete="off" required>
+                    <label>E-mail ou Usuário</label>
+                    <input type="text" id="username" placeholder="Seu acesso..." required autocomplete="username">
                 </div>
-
-                <button type="submit" class="btn-login">
-                    Acessar Sistema
-                </button>
-
-                <div id="errorMessage" class="error-message">
-                    ⚠️ Senha incorreta. Acesso negado.
+                <div class="input-group">
+                    <label>Senha de Segurança</label>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
+                <button type="submit" class="btn" id="submitBtn">ACESSAR PAINEL</button>
             </form>
+            <div id="msg"></div>
         </div>
+        <div class="footer-note">SISTEMA MONITORADO POR IA - FILTRAGEM ALFA ATIVA</div>
     </div>
-
     <script>
-        const CORRECT_PASSWORD = 'alfa777';
-
-        function handleLogin(event) {
-            event.preventDefault();
-
-            const passwordInput = document.getElementById('passwordInput');
-            const errorMessage = document.getElementById('errorMessage');
-            const enteredPassword = passwordInput.value;
-
-            if (enteredPassword === CORRECT_PASSWORD) {
-                // Senha correta - redireciona para a rota operacional
-                window.location.href = '/operacional';
-            } else {
-                // Senha incorreta - mostra erro
-                errorMessage.classList.add('show');
-                passwordInput.value = '';
-                passwordInput.focus();
-
-                // Remove a mensagem de erro após 3 segundos
-                setTimeout(() => {
-                    errorMessage.classList.remove('show');
-                }, 3000);
-            }
-
-            return false;
+        let mode = 'login';
+        function switchTab(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + newMode).classList.add('active');
+            document.getElementById('submitBtn').innerText = mode === 'login' ? 'ACESSAR PAINEL' : 'CRIAR ACESSO';
+            document.getElementById('msg').innerText = '';
         }
-
-        // Foco automático no campo de senha ao carregar
-        window.addEventListener('load', () => {
-            document.getElementById('passwordInput').focus();
-        });
-
-        // Permite Enter para submeter
-        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleLogin(e);
-            }
-        });
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const msg = document.getElementById('msg');
+            msg.style.color = '#888';
+            msg.innerText = "VALIDANDO CREDENCIAIS...";
+            
+            try {
+                const res = await fetch(`/api/${mode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    msg.style.color = '#00ff88';
+                    msg.innerText = mode === 'login' ? "SINCROIZAÇÃO CONCLUÍDA! REDIRECIONANDO..." : "REGISTRO ALFA CONCLUÍDO!";
+                    if (mode === 'login') {
+                        localStorage.setItem('fluxo_clientId', data.clientId);
+                        localStorage.setItem('fluxo_token', data.token);
+                        setTimeout(() => window.location.href = data.redirect, 1200);
+                    } else {
+                        setTimeout(() => switchTab('login'), 1500);
+                    }
+                } else {
+                    msg.style.color = '#ff4444';
+                    msg.innerText = data.msg || "ERRO NA AUTENTICAÇÃO";
+                }
+            } catch (err) { msg.innerText = "ERRO DE CONEXÃO COM O SERVIDOR"; }
+        };
     </script>
 </body>
-
 </html>

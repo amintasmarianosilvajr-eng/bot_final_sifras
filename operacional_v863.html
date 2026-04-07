@@ -415,6 +415,10 @@
                     style="background: #000; color: #82b941; border: 2px solid #82b941; padding: 10px 20px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.7rem; font-weight: 900; cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(130,185,65,0.4); text-transform: uppercase;">
                     Baixe agora seu sistema
                 </button>
+                <button onclick="logout()"
+                    style="background: rgba(255,0,0,0.1); color: #ff0055; border: 1px solid #ff0055; padding: 10px 20px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.7rem; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; margin-left: 10px;">
+                    Sair
+                </button>
             </div>
             <div class="hub-form" style="position: absolute; right: 2rem;">
                 <button id="btnPanic" class="btn btn-stop"
@@ -617,9 +621,23 @@
 
         console.log(`[DASHBOARD] Conectando ao backend em: ${API_URL || window.location.origin}`);
         let isStarted = false;
-        let monitoredClientId = null; // null = Automático
+        
+        // RECUPERAR CLIENTE LOGADO OU AUTOMÁTICO
+        const savedClientId = localStorage.getItem('fluxo_clientId');
+        let monitoredClientId = savedClientId ? parseInt(savedClientId) : null; 
+        
+        if (monitoredClientId) {
+            console.log(`[AUTH] Dashboard sincronizado com Cliente ID: ${monitoredClientId}`);
+        }
+
         window.lastSaleNotified = false;
         let lastLogTime = "";
+
+        function logout() {
+            localStorage.removeItem('fluxo_clientId');
+            localStorage.removeItem('fluxo_token');
+            window.location.href = '/';
+        }
 
         // Relógio de Precisão Frontend
         let frontendSeconds = 20;
