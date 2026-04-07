@@ -821,64 +821,58 @@ app.get('/status', (req, res) => {
 app.post('/api/register', (req, res) => {
     const { user, pass } = req.body;
     if (!user || !pass) return res.json({ ok: false, msg: 'Dados incompletos' });
-    
     const exists = clients.find(c => c.username === user);
     if (exists) return res.json({ ok: false, msg: 'Usuário já existe' });
-
     const newId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) + 1 : 1;
-    const newClient = { 
-        ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), 
-        id: newId, 
-        username: user, 
-        password: pass,
-        clientName: `Operacional #${newId}`
-    };
-
-    clients.push(newClient);
-    saveDatabase();
-    console.log(`[AUTH] Novo usuário registrado: ${user} (ID: ${newId})`);
-    res.json({ ok: true });
+    const newClient = { ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), id: newId, username: user, password: pass, clientName: `Operacional #${newId}` };
+    clients.push(newClient); saveDatabase(); res.json({ ok: true });
 });
 
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     const client = clients.find(c => (c.username === user || c.clientName === user) && c.password === pass);
-
-    if (client) {
-        res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
-    } else {
-        res.json({ ok: false, msg: 'Credenciais inválidas' });
-    }
+    if (client) res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
+    else res.json({ ok: false, msg: 'Credenciais inválidas' });
 });
 
 app.get('/api/admin/data', (req, res) => {
-    // Retorna dados simplificados para o painel admin
     res.json({ 
         ok: true, 
         users: clients.map(c => ({
-            id: c.id,
-            user: c.username,
-            clientName: c.clientName,
-            status: c.status,
-            ops: c.operationsCount,
-            profit: c.totalProfit,
-            currentAsset: c.currentAsset,
-            buyPrice: c.buyPrice,
-            currentPrice: c.currentPrice || 0,
-            targetPrice: c.targetPrice || 0,
-            isInfinityLoop: c.isInfinityLoop || false,
-            buyPercentage: c.buyPercentage || 1.0,
-            apiKey: c.apiKey,
-            apiSecret: c.apiSecret,
-            balanceUSDT: c.balanceUSDT || 0
+            id: c.id, user: c.username, clientName: c.clientName, status: c.status,
+            operationsCount: c.operationsCount, totalProfit: c.totalProfit,
+            currentAsset: c.currentAsset, buyPrice: c.buyPrice,
+            currentPrice: c.currentPrice || 0, targetPrice: c.targetPrice || 0,
+            isInfinityLoop: c.isInfinityLoop || false, balanceUSDT: c.balanceUSDT || 0
         })),
-        logs: globalLogs, // Sempre retorna os logs globais (essencial para o dashboard)
-        top20: globalMarket.top20,
-        coinJumps: globalMarket.coinJumps,
-        maxJump: globalMarket.maxJump,
-        timer: globalMarket.countdownRemaining, // --- SINCRONIA REESTABELECIDA ---
-        pingCount: globalPingCount
+        logs: globalLogs, top20: globalMarket.top20, countdownRemaining: globalMarket.countdownRemaining, pingCount: globalPingCount
     });
+});
+
+app.post('/api/admin/manual-trade', (req, res) => {
+    const { clientId, symbol, price } = req.body;
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+        client.status = 'IN_TRADE';
+        client.currentAsset = symbol;
+        client.buyPrice = parseFloat(price);
+        client.entryPrice = parseFloat(price);
+        client.tradeStartTime = Date.now();
+        saveDatabase();
+        addServerLog(clientId, `🚀 RECUPERACAO: Monitorando ${symbol} @ $${price}`, 'trigger');
+        monitorTrade(client, symbol, parseFloat(price));
+        res.json({ ok: true });
+    } else { res.json({ ok: false }); }
+});
+
+app.post('/api/admin/reset', (req, res) => {
+    const { clientId } = req.body;
+    const index = clients.findIndex(c => c.id === clientId);
+    if (index !== -1) {
+        const old = clients[index];
+        clients[index] = { ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), id: old.id, username: old.username, password: old.password, clientName: old.clientName, apiKey: old.apiKey, apiSecret: old.apiSecret };
+        saveDatabase(); res.json({ ok: true });
+    } else { res.json({ ok: false }); }
 });
 
 app.get('/report/:id', async (req, res) => {

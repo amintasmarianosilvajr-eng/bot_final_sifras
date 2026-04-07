@@ -91,20 +91,41 @@
                 const list = document.getElementById('userList');
                 list.innerHTML = data.users.map(u => `
                     <tr>
-                        <td>#${u.id}</td>
-                        <td style="font-weight: bold;">${u.clientName || u.user || 'Novo Cliente'}</td>
-                        <td><span class="badge ${u.status !== 'IDLE' ? 'badge-active' : 'badge-idle'}">${u.status}</span></td>
-                        <td style="color: ${u.totalProfit >= 0 ? '#00ff88' : '#ff4444'}">${(u.totalProfit || 0).toFixed(2)}%</td>
-                        <td>${u.operationsCount || 0} Ciclos</td>
-                        <td>
-                            <button class="btn-reset" onclick="resetUser(${u.id})">RESET VIRGEM</button>
-                        </td>
+                            <div class="user-info">
+                                <strong>${u.clientName}</strong> (ID: ${u.id})<br>
+                                <small>User: ${u.user} | Stat: <span style="color:${u.status === 'IN_TRADE' ? '#00f2ff' : '#00ff9d'}">${u.status}</span></small>
+                            </div>
+                            <div class="user-stats">
+                                <span>Profit: ${u.totalProfit.toFixed(2)}%</span>
+                                <span>Ops: ${u.operationsCount}</span>
+                                <span style="color:#00f2ff">${u.currentAsset || '---'}</span>
+                            </div>
+                            <div class="user-actions">
+                                <button class="btn btn-reset" onclick="recoverTrade(${u.id})">Recuperar</button>
+                                <button class="btn btn-reset" style="background:rgba(255,0,0,0.1); border-color:red; color:red;" onclick="resetVirgin(${u.id})">Reset Virgem</button>
+                            </div>
                     </tr>
                 `).join('');
             } catch (err) { console.error("Admin Fetch Error"); }
         }
 
-        async function resetUser(id) {
+        async function recoverTrade(id) {
+            const symbol = prompt("Digite o Ativo para recuperar (Ex: DEGOUSDT):");
+            const price = prompt("Digite o Preço de Compra (Ex: 0.341):");
+            if(!symbol || !price) return;
+            
+            if(confirm(`Confirmar monitoramento de ${symbol} @ $${price} para ID ${id}?`)) {
+                const res = await fetch('/api/admin/manual-trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ clientId: id, symbol: symbol.toUpperCase(), price: parseFloat(price) })
+                });
+                const data = await res.json();
+                if(data.ok) { alert("Modo Recuperação Ativo!"); fetchAdminData(); }
+            }
+        }
+
+        async function resetVirgin(id) {
             if (!confirm(`Deseja aplicar o RESET VIRGEM no cliente #${id}?\nIsso limpará histórico e logs, mantendo as configurações ideais.`)) return;
             
             const res = await fetch('/api/admin/reset', {

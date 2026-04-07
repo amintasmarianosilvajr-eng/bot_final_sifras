@@ -1,9 +1,15 @@
 [
   {
     "id": 1,
+    "username": "admin",
+    "password": "alfa777",
     "clientName": "Amintas",
     "apiKey": "x5Sbl4fP9g3CdkOyIMf6BhHHKFpuWDEi24Ed0kbM7fNPOQ8ScMlXQP1jIZlmJSSl",
     "apiSecret": "QcDUVKRGKqSlPkVaEwQe7MxNYHz5N97AMFarcD5NcwfNjOGDSxveA0mC84bQrCmj",
+    "status": "IN_TRADE",
+    "currentAsset": "DEGOUSDT",
+    "buyPrice": 0.341,
+    "entryPrice": 0.341,
     "totalProfit": 0.8017103153393765,
     "tradeHistory": [
       {
@@ -15,15 +21,11 @@
         "result": "GAIN"
       }
     ],
-    "tradedCoins": [
-      "REDUSDT",
-      "DEGOUSDT"
-    ],
-    "status": "IDLE",
-    "currentAsset": "DEGOUSDT",
-    "buyPrice": 0.341,
-    "entryPrice": 0.341,
+    "tradedCoins": ["REDUSDT"],
     "buyPercentage": 1,
-    "isInfinityLoop": false
+    "isInfinityLoop": false,
+    "maxOpsBeforePause": 3,
+    "profitTarget": 0.6,
+    "stopLoss": 4.0
   }
 ]
