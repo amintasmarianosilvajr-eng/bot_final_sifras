@@ -700,6 +700,33 @@
             box.prepend(div);
         }
 
+        function downloadMyHistory() {
+            if (!lastData || !lastData.history) return alert("Nenhum dado disponível.");
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18); doc.text(`RELATÓRIO DE TRADES - ${lastData.name || 'Cliente'}`, 20, 20);
+            doc.setFontSize(10);
+            let y = 40;
+            doc.text(`LUCRO ACUMULADO: ${lastData.totalProfit.toFixed(2)}%`, 20, 30);
+            doc.text(`TOTAL DE OPERAÇÕES: ${lastData.operationsCount}`, 20, 35);
+            doc.text("DATA | PAR | TIPO | LUCRO (%)", 20, y);
+            y += 10;
+            lastData.history.forEach(h => {
+                if(y > 280) { doc.addPage(); y = 20; }
+                doc.text(`${h.date} | ${h.symbol} | ${h.result} | ${h.profit.toFixed(3)}%`, 20, y);
+                y += 7;
+            });
+            doc.save(`meu_historico_alfa.pdf`);
+        }
+
+        async function resetMyKeys() {
+            if (!confirm("⚠️ Deseja realmente resetar suas Chaves API e parar o robô?")) return;
+            localStorage.removeItem('alfa_apiKey');
+            localStorage.removeItem('alfa_apiSecret');
+            await fetch('/stop', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ clientId: CLIENT_ID }) });
+            location.reload();
+        }
+
         async function updateUI() {
             try {
                 const url = monitoredClientId ? `${API_URL}/status?clientId=${monitoredClientId}` : `${API_URL}/status`;
