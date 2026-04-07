@@ -570,9 +570,10 @@ async function executeRealBuy(client, symbol, price) {
         }
 
         client.buyPrice = avgPrice;
+        client.targetPrice = avgPrice * 1.01; // Alvo de 1.0% de variação (0.8% líquido)
         client.currentAsset = symbol;
         const buyTotal = amount.toFixed(2);
-        addServerLog(client.id, `✅ COMPRA EXECUTADA: ${symbol} | Preço: $${avgPrice.toFixed(8)} | Investimento: $${buyTotal} USDT | Status: Sniper Ativo`, 'buy');
+        addServerLog(client.id, `✅ COMPRA EXECUTADA: ${symbol} | Preço: $${avgPrice.toFixed(8)} | Alvo: $${client.targetPrice.toFixed(8)} | Investimento: $${buyTotal} USDT`, 'buy');
         
         // Inicia Monitoramento de Lucro
         monitorTrade(client, symbol);
@@ -588,6 +589,7 @@ async function monitorTrade(client, symbol) {
         try {
             const ticker = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json());
             const current = parseFloat(ticker.price);
+            client.currentPrice = current; // Telemetria em tempo real
             
             // 0.8% Líquido + 0.2% Taxas = 1.0% Variação no preço
             const diff = ((current - client.buyPrice) / client.buyPrice) * 100;
