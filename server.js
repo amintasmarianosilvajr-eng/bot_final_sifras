@@ -351,7 +351,7 @@ setInterval(async () => {
             })
             .filter(i => i.vol > 0)
             .sort((a, b) => b.vol - a.vol)
-            .slice(0, 10);
+            .slice(0, 20); // Garantir o #2 ao #15 completo
 
         // DEBUG VISUAL DO RANKING (Para verificar alinhamento com Binance)
         const topString = globalMarket.top20.slice(0, 6).map((x, i) => `#${i + 1} ${x.symbol.replace('USDT', '')}:${x.vol.toFixed(2)}%`).join(' | ');
@@ -591,12 +591,12 @@ async function monitorTrade(client, symbol) {
             const current = parseFloat(ticker.price);
             client.currentPrice = current; // Telemetria em tempo real
             
-            // 0.8% Líquido + 0.2% Taxas = 1.0% Variação no preço
+            const clientTarget = client.profitTarget || 0.8;
+            const targetVar = clientTarget + 0.2; // 0.8% líquido + 0.2% taxas
             const diff = ((current - client.buyPrice) / client.buyPrice) * 100;
-            const target = 1.0; 
 
-            if (diff >= target) {
-                console.log(`[ALVO] ${symbol} atingiu +${diff.toFixed(2)}%`);
+            if (diff >= targetVar) {
+                console.log(`[ALVO] ${symbol} atingiu +${diff.toFixed(2)}% | Alvo: ${targetVar}%`);
                 clearInterval(monitorInterval);
                 executeRealSell(client, symbol);
             }
@@ -616,8 +616,22 @@ async function executeRealSell(client, symbol) {
             updateStatus(client, 'SCANNING'); return;
         }
 
+        // --- AJUSTE DE PRECISÃO (StepSize) ---
+        const exinfo = globalMarket.exchangeInfo.symbols.find(s => s.symbol === symbol);
+        const lotSize = exinfo.filters.find(f => f.filterType === 'LOT_SIZE');
+        const stepSize = lotSize ? lotSize.stepSize : '0.00000001';
+        
+        function formatByStep(qty, step) {
+            const precision = step.indexOf('1') - 1;
+            if (precision < 0) return Math.floor(qty).toString();
+            const factor = Math.pow(10, precision);
+            return (Math.floor(qty * factor) / factor).toFixed(precision);
+        }
+
+        const finalQty = formatByStep(parseFloat(balance.free), stepSize);
+
         const sellOrder = await binanceRequest(client, '/api/v3/order', 'POST', {
-            symbol: symbol, side: 'SELL', type: 'MARKET', quantity: parseFloat(balance.free).toFixed(8) 
+            symbol: symbol, side: 'SELL', type: 'MARKET', quantity: finalQty
         });
 
         if (sellOrder.error) {
