@@ -89,6 +89,13 @@
         }
         document.getElementById('authForm').onsubmit = async (e) => {
             e.preventDefault();
+            if (mode === 'register') {
+                const usernameInput = document.getElementById('username').value.trim();
+                if (!usernameInput.toLowerCase().endsWith('@gmail.com')) {
+                    alert("ERRO: Apenas e-mails @gmail.com são permitidos para o cadastro.");
+                    return;
+                }
+            }
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
             const msg = document.getElementById('msg');
