@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MASTER ADMIN - Fluxo Alfa</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --primary: #00c8ff; --danger: #ff4444; --bg: #050505; --card: #0f0f0f; }
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -61,12 +62,13 @@
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>USUÁRIO / CLIENTE</th>
-                    <th>STATUS ATUAL</th>
-                    <th>LUCRO ACUMULADO</th>
-                    <th>OPERAÇÕES</th>
-                    <th>AÇÕES</th>
+                    <th style="width: 50px;">ID</th>
+                    <th>NOME / USUÁRIO</th>
+                    <th>STATUS</th>
+                    <th>SALDO (USDT)</th>
+                    <th>LUCRO</th>
+                    <th>APROVAÇÃO</th>
+                    <th style="width: 320px;">AÇÕES</th>
                 </tr>
             </thead>
             <tbody id="userList">
@@ -89,24 +91,74 @@
                 document.getElementById('avgProfit').innerText = (totalProfit / (data.users.length || 1)).toFixed(2) + '%';
 
                 const list = document.getElementById('userList');
-                list.innerHTML = data.users.map(u => `
-                    <tr>
-                            <div class="user-info">
-                                <strong>${u.clientName}</strong> (ID: ${u.id})<br>
-                                <small>User: ${u.user} | Stat: <span style="color:${u.status === 'IN_TRADE' ? '#00f2ff' : '#00ff9d'}">${u.status}</span></small>
-                            </div>
-                            <div class="user-stats">
-                                <span>Profit: ${u.totalProfit.toFixed(2)}%</span>
-                                <span>Ops: ${u.operationsCount}</span>
-                                <span style="color:#00f2ff">${u.currentAsset || '---'}</span>
-                            </div>
-                            <div class="user-actions">
-                                <button class="btn btn-reset" onclick="recoverTrade(${u.id})">Recuperar</button>
-                                <button class="btn btn-reset" style="background:rgba(255,0,0,0.1); border-color:red; color:red;" onclick="resetVirgin(${u.id})">Reset Virgem</button>
-                            </div>
+                list.innerHTML = data.users.map(u => {
+                    const isApproved = u.isApproved;
+                    return `
+                    <tr style="opacity: ${isApproved ? '1' : '0.6'}; border-left: 3px solid ${isApproved ? 'transparent' : 'var(--cyber-gold)'}">
+                        <td>#${u.id}</td>
+                        <td>
+                            <strong style="color:#fff">${u.clientName || 'Novo Cliente'}</strong><br>
+                            <small style="color:#666">${u.user}</small>
+                        </td>
+                        <td><span class="badge ${u.status !== 'IDLE' ? 'badge-active' : 'badge-idle'}">${u.status}</span></td>
+                        <td style="color:#00f2ff; font-weight:bold">$${(u.balanceUSDT || 0).toFixed(2)}</td>
+                        <td style="color: ${u.totalProfit >= 0 ? '#0b9' : '#f33'}">${(u.totalProfit || 0).toFixed(2)}%</td>
+                        <td>${isApproved ? '✅ Aprovado' : '<span style="color:var(--cyber-gold); font-weight:900;">⏳ PENDENTE</span>'}</td>
+                        <td class="user-actions">
+                            ${!isApproved ? `<button class="btn btn-reset" style="background:#0b9; color:#000;" onclick="approveUser(${u.id})">APROVAR</button>` : ''}
+                            <button class="btn btn-reset" onclick="recoverTrade(${u.id})">RECUPERAR</button>
+                            <button class="btn btn-reset" onclick="downloadRegPDF(${u.id})" style="background:#222; border-color:#00f2ff; color:#00f2ff;">📄 CAD</button>
+                            <button class="btn btn-reset" onclick="downloadHistPDF(${u.id})" style="background:#222; border-color:#00ff9d; color:#00ff9d;">📈 HIST</button>
+                            <button class="btn btn-reset" style="background:rgba(255,0,0,0.1); border-color:red; color:red;" onclick="deleteUser(${u.id})">EXCLUIR</button>
+                        </td>
                     </tr>
-                `).join('');
+                `}).join('');
             } catch (err) { console.error("Admin Fetch Error"); }
+        }
+
+        async function approveUser(id) {
+            if(!confirm(`Deseja aprovar o acesso do cliente #${id}?`)) return;
+            const res = await fetch('/api/admin/approve', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ clientId: id }) });
+            if((await res.json()).ok) fetchAdminData();
+        }
+
+        async function deleteUser(id) {
+            if(id === 1) return alert("Impossível excluir Admin Master.");
+            if(!confirm(`⚠️ ATENÇÃO: Deseja excluir permanentemente o cliente #${id}?\nEsta ação é irreversível!`)) return;
+            const res = await fetch('/api/admin/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ clientId: id }) });
+            if((await res.json()).ok) fetchAdminData();
+        }
+
+        async function downloadRegPDF(id) {
+            const u = lastData.users.find(x => x.id === id);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(22); doc.text("FICHA DE CADASTRO - FLUXO ALFA", 20, 20);
+            doc.setFontSize(12); doc.text(`Cliente ID: ${u.id}`, 20, 40);
+            doc.text(`Nome: ${u.clientName || '---'}`, 20, 50);
+            doc.text(`Usuário: ${u.user}`, 20, 60);
+            doc.text(`Senha: ${u.password}`, 20, 70);
+            doc.text(`Status: ${u.isApproved ? 'Aprovado' : 'Aguardando'}`, 20, 80);
+            doc.text(`Data de Emissão: ${new Date().toLocaleString()}`, 20, 90);
+            doc.save(`cadastro_alfa_${u.id}.pdf`);
+        }
+
+        async function downloadHistPDF(id) {
+            const u = lastData.users.find(x => x.id === id);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18); doc.text(`HISTÓRICO OPERACIONAL - ${u.clientName || u.user}`, 20, 20);
+            doc.setFontSize(10);
+            let y = 40;
+            doc.text(`LUCRO ACUMULADO: ${u.totalProfit.toFixed(2)}%`, 20, 30);
+            doc.text("DATA | PAR | TIPO | LUCRO (%)", 20, y);
+            y += 10;
+            u.history.forEach(h => {
+                if(y > 280) { doc.addPage(); y = 20; }
+                doc.text(`${h.date} | ${h.symbol} | ${h.result} | ${h.profit.toFixed(3)}%`, 20, y);
+                y += 7;
+            });
+            doc.save(`historico_alfa_${u.id}.pdf`);
         }
 
         async function recoverTrade(id) {

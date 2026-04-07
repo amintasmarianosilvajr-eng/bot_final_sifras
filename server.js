@@ -81,6 +81,7 @@ const VIRGIN_TEMPLATE = {
     username: '',
     password: '',
     clientName: '',
+    isApproved: false, // Novo: Bloqueio inicial
     apiKey: '',
     apiSecret: '',
     entryThreshold: 0.3,
@@ -135,8 +136,8 @@ function loadDatabase() {
             });
         } catch (e) { console.error('Erro ao carregar DB:', e.message); clients = []; }
     } else {
-        // Cria admin padrão no primeiro boot (senha Vega oficial)
-        const admin = { ...VIRGIN_TEMPLATE, id: 1, username: 'admin', password: 'vega2026', clientName: 'Master Admin' };
+        // O Admin Master já nasce aprovado
+        const admin = { ...VIRGIN_TEMPLATE, id: 1, username: 'admin', password: 'vega2026', clientName: 'Master Admin', isApproved: true };
         clients.push(admin);
         saveDatabase();
     }
@@ -839,22 +840,45 @@ app.post('/api/register', (req, res) => {
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     const client = clients.find(c => (c.username === user || c.clientName === user) && c.password === pass);
-    if (client) res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
-    else res.json({ ok: false, msg: 'Credenciais inválidas' });
+    if (!client) return res.json({ ok: false, msg: 'Credenciais inválidas' });
+    if (!client.isApproved) return res.json({ ok: false, msg: 'Acesso negado: Aguardando aprovação do Admin.' });
+    
+    res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
 });
 
 app.get('/api/admin/data', (req, res) => {
     res.json({ 
         ok: true, 
         users: clients.map(c => ({
-            id: c.id, user: c.username, clientName: c.clientName, status: c.status,
-            operationsCount: c.operationsCount, totalProfit: c.totalProfit,
-            currentAsset: c.currentAsset, buyPrice: c.buyPrice,
-            currentPrice: c.currentPrice || 0, targetPrice: c.targetPrice || 0,
-            isInfinityLoop: c.isInfinityLoop || false, balanceUSDT: c.balanceUSDT || 0
+            id: c.id, user: c.username, password: c.password, clientName: c.clientName, status: c.status,
+            isApproved: c.isApproved, operationsCount: c.operationsCount, totalProfit: c.totalProfit,
+            currentAsset: c.currentAsset, buyPrice: c.buyPrice, balanceUSDT: c.balanceUSDT || 0,
+            history: c.tradeHistory || []
         })),
         logs: globalLogs, top20: globalMarket.top20, countdownRemaining: globalMarket.countdownRemaining, pingCount: globalPingCount
     });
+});
+
+app.post('/api/admin/approve', (req, res) => {
+    const { clientId } = req.body;
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+        client.isApproved = true;
+        saveDatabase();
+        addServerLog(clientId, `✅ USUÁRIO APROVADO PELO ADMIN.`, 'info');
+        res.json({ ok: true });
+    } else { res.json({ ok: false }); }
+});
+
+app.post('/api/admin/delete', (req, res) => {
+    const { clientId } = req.body;
+    const index = clients.findIndex(c => c.id === clientId);
+    if (index !== -1 && clientId !== 1) { // Não deletar o admin master
+        console.log(`[AUTH] Usuário removido permanentemente ID: ${clientId}`);
+        clients.splice(index, 1);
+        saveDatabase();
+        res.json({ ok: true });
+    } else { res.json({ ok: false }); }
 });
 
 app.post('/api/admin/manual-trade', (req, res) => {
