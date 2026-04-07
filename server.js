@@ -81,33 +81,23 @@ const VIRGIN_TEMPLATE = {
     username: '',
     password: '',
     clientName: '',
-    isApproved: false, // Novo: Bloqueio inicial
+    isApproved: false,
     apiKey: '',
     apiSecret: '',
-    entryThreshold: 0.3,
-    profitTarget: 0.6,
-    stopLoss: 4.0,
-    maxOpsBeforePause: 3,
-    pauseDuration: 900000,
-    interTradePause: 120000,
-    status: 'IDLE',
+    entryThreshold: 0, // Ignorar 0.3% (v8.6.3 real)
+    buyPercentage: 1.0, 
     operationsCount: 0,
-    currentAsset: null,
-    entryPrice: 0,
-    buyPrice: 0,
-    tradeStartTime: 0,
-    lastTradeDuration: '',
-    maxJump: 0,
-    pingCount: 0,
-    logs: [],
-    tradedCoins: [],
-    lastSoldSymbol: null,
-    lastSoldTime: 0,
-    balanceUSDT: 0,
     totalProfit: 0,
+    currentAsset: null,
+    buyPrice: 0,
+    status: 'IDLE',
     tradeHistory: [],
-    buyPercentage: 1.0,
-    isInfinityLoop: false
+    tradedCoins: [], // Histórico curto para anti-repetição
+    lastTradeTime: 0, // Para pausa de 2 min
+    cycleCount: 0, // Contador para pausa de 15 min
+    nextAllowedTradeTime: 0, // Trava de descanso
+    profitTarget: 0.8, // 0.8% Líquido
+    stopLoss: 0 // SEM STOP LOSS (Removido por solicitação)
 };
 
 function saveDatabase() {
@@ -405,7 +395,7 @@ setInterval(async () => {
         // Movi para fora do loop principal para zero lag no motor de 20s.
         
         // 6. EXECUTAR LÓGICA DE RANKING (APENAS NA HORA EXATA DO TIRO)
-        await checkClientsForOpportunity(isCycleEnd);
+        await checkClientsForOpportunity();
 
         // Se atiramos, o ciclo se renova imediatamente para a próxima conta de 20s e RECARREGA OS PREÇOS ALVO
         if (isCycleEnd) {
@@ -480,46 +470,51 @@ async function validateAlfaSecurity(client, symbol, currentPrice) {
 }
 
 // --- SCANNER DE ALTA VOLATILIDADE ALFA 20S (MOTOR LIMPO) ---
-async function checkClientsForOpportunity(isCycleEnd) {
-    // SÓ atira na virada exata dos 20 segundos
-    if (!isCycleEnd) return;
+async function checkClientsForOpportunity() {
+    const now = Date.now();
+    const blacklist = [
+        'PEPE','SHIB','FLOKI','DOGE','BONK','WIF','MEME','BABYDOGE', // Memes
+        'BAR','ACM','ASR','ATM','INTER','JUV','CITY','PORTO','SANTOS','LAZIO','PSG','ALPACA', // Fan Tokens/Teams
+        'LUNC','USTC','FTT','VGX','BTTC' // Zumbis/Monitoradas
+    ];
+    
+    if (!globalMarket.top20 || globalMarket.top20.length < 15) return;
 
-    const top = globalMarket.top20;
-    if (!top || top.length === 0) return;
-
-    // ISOLAR DA 2ª À 10ª COLOCADA (Índices 1 ao 9 no Top20 ordenado)
-    const validPool = top.slice(1, 10);
-
+    // Selecionar do #2 ao #15 (Índices 1 a 14)
+    const pool = globalMarket.top20.slice(1, 15);
+    
+    // Identificar a CAMPEÃ da VOLATILIDADE (Maior salto nos últimos 20s) entre o ranking #2-15
     let bestCoin = null;
-    let maxVolPositive = -9999; // Buscamos apenas ganhos nesse ciclo de 20s
+    let maxJump = -9999;
 
-    for (const targetCoin of validPool) {
-        const jump = globalMarket.coinJumps[targetCoin.symbol] || 0;
-        if (jump > maxVolPositive && jump > 0) { // Deve ser positivo
-            maxVolPositive = jump;
-            bestCoin = targetCoin;
+    for (const coin of pool) {
+        const symbol = coin.symbol.replace('USDT', '');
+        const volumeOK = (parseFloat(coin.quoteVolume) || 0) >= 1000000;
+        const notBlacklisted = !blacklist.includes(symbol);
+        
+        if (volumeOK && notBlacklisted) {
+            const jump = coin.lastUpdateJump || 0; // Calculado no Radar a cada 20s
+            if (jump > maxJump) {
+                maxJump = jump;
+                bestCoin = coin;
+            }
         }
     }
 
-    if (!bestCoin) {
-        // Enviar log de sistema nulo para mostrar ao usuário que o relógio bateu
-        addServerLog(null, `⏱️ CICLO 20s FECHADO: Nenhuma moeda(2-10) saltou com percentual positivo (Máx: ${maxVolPositive.toFixed(2)}%). Reiniciando...`, 'info');
-        return;
-    }
-
-    addServerLog(null, `🎯 JANELA 20s FECHADA: Vencedora isolada foi ${bestCoin.symbol} (+${maxVolPositive.toFixed(3)}%)`, 'trigger');
+    if (!bestCoin || maxJump <= 0) return;
 
     for (const client of clients) {
-        if (client.status !== 'SCANNING') continue;
+        if (client.status !== 'SCANNING' || !client.isApproved) continue;
 
-        // Anti-repetição básica: A mesma moeda não deve ser re-comprada repetidamente nas 5 últimas trades
-        if (client.tradedCoins && client.tradedCoins.includes(bestCoin.symbol)) continue;
+        // 1. Sistema de Descanso (Trava Temporal)
+        if (now < client.nextAllowedTradeTime) continue;
 
-        addServerLog(client.id, `🎯 FIM DOS 20s: A Campeã do Ranking(2-10) é ${bestCoin.symbol} (+${maxVolPositive.toFixed(3)}%)`, 'trigger');
+        // 2. Filtro Anti-Repetição (Só repete a mesma moeda após 4 outras operações)
+        const recentCoins = (client.tradedCoins || []).slice(-4);
+        if (recentCoins.includes(bestCoin.symbol)) continue;
 
-        // BYPASS COMPLETO DE SEGURANÇA: Compra garantida absoluta da eleita dos 20s
-        addServerLog(client.id, `🚀 EXECUTANDO COMPRA FERRARI: ${bestCoin.symbol} (Tiro Isolado 20s!)`, 'buy');
-        await executeRealBuy(client, bestCoin.symbol, bestCoin.price);
+        console.log(`[FERRARI v8.6.3] ${bestCoin.symbol} eleita com +${maxJump.toFixed(3)}% de volatilidade no ato.`);
+        executeRealBuy(client, bestCoin.symbol, parseFloat(bestCoin.lastPrice));
     }
 }
 
@@ -579,8 +574,34 @@ async function executeRealBuy(client, symbol, price) {
             addServerLog(client.id, `✅ COMPRA EXECUTADA (MARKET) | ID: ${buyOrder.orderId} | Preço Médio: ${avgPrice.toFixed(8)} USDT`, 'buy');
         }
 
-        if (!client.tradedCoins) client.tradedCoins = [];
-        client.tradedCoins.push(symbol);
+    // Atualizar saldos e logs
+    client.status = 'STOPPED'; // Pausa pós-trade
+    client.operationsCount++;
+    client.cycleCount++;
+    client.tradedCoins.push(symbol);
+    
+    // DEFINIR SISTEMA DE DESCANSO REAL
+    const now = Date.now();
+    let pauseTime = 2 * 60 * 1000; // Padrão 2 minutos
+    if (client.cycleCount >= 3) {
+        pauseTime = 15 * 60 * 1000; // 15 minutos a cada 3 ciclos
+        client.cycleCount = 0;
+        addServerLog(client.id, `⏸️ DESCANSO LONGO: 15 minutos de pausa após 3 operações.`, 'info');
+    } else {
+        addServerLog(client.id, `⏸️ DESCANSO CURTO: 2 minutos de pausa.`, 'info');
+    }
+    client.nextAllowedTradeTime = now + pauseTime;
+    
+    // Voltar ao SCANNING automaticamente após a pausa?
+    setTimeout(() => {
+        if (client.status === 'STOPPED') {
+            client.status = 'SCANNING';
+            addServerLog(client.id, `🔄 DESCANSO FINALIZADO: Retornando ao Radar Ferrari.`, 'trigger');
+            saveDatabase();
+        }
+    }, pauseTime);
+
+    saveDatabase();
         // Mantém apenas as últimas 5 na memória para evitar repetição curta
         if (client.tradedCoins.length > 5) client.tradedCoins.shift();
 
@@ -616,40 +637,28 @@ async function executeRealBuy(client, symbol, price) {
 
 // Monitor específico de trade em andamento
 async function monitorTrade(client, symbol, entryPrice) {
-    // Adicionamos um buffer de 0.2% para cobrir a taxa de compra (0.1%) e venda (0.1%) da Binance
-    const BINANCE_FEE_BUFFER = 0.2;
-    const netProfitTarget = client.profitTarget + BINANCE_FEE_BUFFER;
+    const monitorInterval = setInterval(async () => {
+        if (client.status === 'IDLE') return clearInterval(monitorInterval);
 
-    const profitTarget = entryPrice * (1 + (netProfitTarget / 100));
-    const stopLossTarget = entryPrice * (1 - (client.stopLoss / 100));
+        const ticker = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 3000 }).then(r => r.json());
+        const currentPrice = parseFloat(ticker.price);
+        
+        // Saída por Lucro: 0.8% Líquido + Taxas (~1.0% Variação)
+        const diff = ((currentPrice - client.buyPrice) / client.buyPrice) * 100;
+        const targetVariation = client.profitTarget + 0.2; // 0.8 + 0.2 de taxas aproximadas
 
-    console.log(`[CLIENT ${client.id}] MONITOR ${symbol} | ALVO REAL (+TAXAS): ${profitTarget.toFixed(8)} | STOP: ${stopLossTarget}`);
-
-    const tradeInterval = setInterval(async () => {
-        if (client.status === 'IDLE') return clearInterval(tradeInterval);
-
-        try {
-            const ticker = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 3000 }).then(r => r.json());
-            const current = parseFloat(ticker.price);
-            client.currentPrice = current; // Sincroniza telemetria para o dashboard
-            client.targetPrice = profitTarget; 
-            
-            // Log de telemetria silencioso (console-only para não poluir o dashboard log)
-            console.log(`[TELEMETRY] ${symbol} | ATUAL: ${current.toFixed(8)} | ALVO: ${profitTarget.toFixed(8)}`);
-
-            if (current >= profitTarget) {
-                clearInterval(tradeInterval);
-                addServerLog(client.id, `🎯 ALVO ATINGIDO: ${symbol} (${current.toFixed(8)})! Acionando venda a mercado...`, 'info');
-                await executeRealSell(client, symbol, 'PROFIT');
-            }
-        } catch (e) { 
-            console.error(`[MONITOR ERROR] ${symbol}:`, e.message); 
+        if (diff >= targetVariation) {
+            console.log(`[CLIENT ${client.id}] ALVO ALCANÇADO: ${diff.toFixed(2)}% | Executando Venda...`);
+            executeRealSell(client, symbol, currentPrice, true);
+            clearInterval(monitorInterval);
         }
-    }, 1000);
+        
+        // REMOVIDO STOP LOSS (Estratégia Ferrari v8.6.3 Original)
+    }, 5000);
 }
 
-async function executeRealSell(client, symbol, reason) {
-    updateStatus(client, 'IN_TRADE', `Vendendo ${symbol} (${reason})...`);
+async function executeRealSell(client, symbol, currentPrice, isProfit) {
+    updateStatus(client, 'IN_TRADE', `Vendendo ${symbol}...`);
     try {
         const exchangeInfo = globalMarket.exchangeInfo || await fetchWithTimeout(`https://api.binance.com/api/v3/exchangeInfo?symbol=${symbol}`, { timeout: 5000 }).then(r => r.json());
         const sInfo = exchangeInfo.symbols.find(s => s.symbol === symbol);
