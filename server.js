@@ -766,7 +766,7 @@ app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     const client = clients.find(c => (c.username === user || c.clientName === user) && c.password === pass);
     if (!client) return res.json({ ok: false, msg: 'Credenciais inválidas' });
-    if (!client.isApproved) return res.json({ ok: false, msg: 'Acesso negado: Aguardando aprovação do Admin.' });
+    if (!client.isApproved && client.id !== 1) return res.json({ ok: false, msg: 'Acesso negado: Aguardando aprovação do Admin.' });
     
     res.json({ ok: true, clientId: client.id, redirect: '/operacional', token: 'ALFA-' + Date.now() });
 });
