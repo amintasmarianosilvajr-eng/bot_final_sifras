@@ -795,18 +795,24 @@ app.get('/status', (req, res) => {
         status: activeClient.status,
         logs: activeClient.logs || [],
         totalProfit: activeClient.totalProfit || 0,
-        opsCount: activeClient.operationsCount || 0,
+        operationsCount: activeClient.operationsCount || 0, 
         currentAsset: activeClient.currentAsset,
         buyPrice: activeClient.buyPrice,
         entryPrice: activeClient.entryPrice,
         currentPrice: activeClient.currentPrice || 0,
+        targetPrice: activeClient.targetPrice || 0, // Adicionado para exibir o alvo no card
         history: activeClient.tradeHistory || [],
         balanceUSDT: activeClient.balanceUSDT || 0,
         buyPercentage: activeClient.buyPercentage || 1.0,
         isInfinityLoop: activeClient.isInfinityLoop || false,
         allStats: allStats,
         globalLogs: globalLogs,
-        market: globalMarket
+        // Sincronia de Telemetria (Radar)
+        top20: globalMarket.top20,
+        coinJumps: globalMarket.coinJumps,
+        maxJump: globalMarket.maxJump,
+        countdownRemaining: globalMarket.countdownRemaining,
+        pingCount: globalPingCount
     });
 });
 
