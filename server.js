@@ -504,7 +504,7 @@ async function checkClientsForOpportunity() {
         const isBlacklisted = blacklist.includes(symbol);
         const volumeOK = volNum >= 1000000;
         
-        console.log(`[CHECK] ${symbol} | Jump: ${jump.toFixed(3)}% | Vol: $${(volNum/1000).toFixed(0)}k | Blacklist: ${isBlacklisted}`);
+        addServerLog(null, `🔍 Scanner #2-15: ${symbol} | Jump: ${jump.toFixed(3)}% | Vol: $${(volNum/1000).toFixed(0)}k`, 'info');
 
         if (volumeOK && !isBlacklisted && jump > 0) {
             if (jump > maxJump) {
@@ -515,7 +515,7 @@ async function checkClientsForOpportunity() {
     }
 
     if (!bestCoin) {
-        console.log(`[CYCLE END] Nenhuma moeda do Ranking #2-15 atendeu aos filtros de Volume (>1M) e Jump (>0).`);
+        addServerLog(null, `📡 CICLO CONCLUÍDO: Nenhuma moeda atingiu força de disparo (Jump > 0 e Volume > 1M).`, 'info');
         return;
     }
 
