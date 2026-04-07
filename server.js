@@ -165,29 +165,36 @@ setInterval(async () => {
         const data = await res.json();
         if (!Array.isArray(data)) return;
         
-        globalMarket.top20 = data
-            .filter(i => i.symbol.endsWith('USDT') && !BLACKLIST.includes(i.symbol.replace('USDT','')))
-            .map(i => {
-                let isSeed = false;
-                if (globalMarket.exchangeInfo) {
-                    const info = globalMarket.exchangeInfo.symbols.find(s => s.symbol === i.symbol);
-                    if (info) {
-                        if (info.tags && info.tags.includes('seed')) isSeed = true;
-                        // BLOQUEIO DE MOEDAS EM VÉSPERA DE DESLISTAGEM (MONITORING TAG)
-                        if (info.tags && info.tags.includes('monitoring')) return false;
-                        if (info.status !== 'TRADING') return false;
-                    }
+        // 1. PEGAR TODOS OS PARES USDT E ORDENAR PELO RANKING BRUTO DA BINANCE
+        const usdtTickers = data.filter(i => i.symbol.endsWith('USDT'));
+        const sortedByRank = usdtTickers.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
+
+        // 2. MAPEAR O TOP 20 REAL (COM RANKING FIXO)
+        globalMarket.top15 = sortedByRank.slice(0, 20).map((i, index) => {
+            let isSeed = false;
+            let isMonitoring = false;
+            if (globalMarket.exchangeInfo) {
+                const info = globalMarket.exchangeInfo.symbols.find(s => s.symbol === i.symbol);
+                if (info) {
+                    if (info.tags && info.tags.includes('seed')) isSeed = true;
+                    if (info.tags && info.tags.includes('monitoring')) isMonitoring = true;
                 }
-                return { 
-                    symbol: i.symbol, 
-                    price: parseFloat(i.lastPrice), 
-                    vol: parseFloat(i.priceChangePercent), 
-                    quoteVol: parseFloat(i.quoteVolume),
-                    isSeed: isSeed
-                };
-            })
-            .sort((a, b) => b.vol - a.vol)
-            .slice(0, 20);
+            }
+            return { 
+                symbol: i.symbol, 
+                price: parseFloat(i.lastPrice), 
+                vol: parseFloat(i.priceChangePercent), 
+                quoteVol: parseFloat(i.quoteVolume),
+                isSeed: isSeed,
+                isMonitoring: isMonitoring,
+                realRank: index + 1
+            };
+        });
+
+        // LOG DE AUDITORIA: Exibir o Top 3 Real no Console/Log para conferência
+        if (now % 20000 < 2500) {
+            console.log(`[RANKING REAL] #1:${globalMarket.top15[0]?.symbol} #2:${globalMarket.top15[1]?.symbol} #3:${globalMarket.top15[2]?.symbol}`);
+        }
 
         const hasActiveScanner = clients.some(c => c.status === 'SCANNING');
         if (!hasActiveScanner) {
@@ -199,8 +206,8 @@ setInterval(async () => {
             if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
             const elapsed = now - globalMarket.lastCycleStartTime;
             
-            // Calculate Jumps for UI
-            globalMarket.top20.forEach(c => {
+            // Calculate Jumps for UI (SÓ PARA O TOP 15)
+            globalMarket.top15.forEach(c => {
                 if (!globalMarket.priceHistory[c.symbol]) {
                     globalMarket.priceHistory[c.symbol] = c.price;
                 }
@@ -213,8 +220,8 @@ setInterval(async () => {
             if (elapsed >= 19500) {
                 await checkClientsForOpportunity();
                 globalMarket.lastCycleStartTime = now;
-                // Set new baseline
-                globalMarket.top20.forEach(c => globalMarket.priceHistory[c.symbol] = c.price);
+                // RESET DE HISTÓRICO: DEFINIR NOVO PREÇO BASE PARA O PRÓXIMO CICLO
+                globalMarket.top15.forEach(c => globalMarket.priceHistory[c.symbol] = c.price);
             }
         }
 
@@ -236,23 +243,34 @@ setInterval(async () => {
 }, 2500);
 
 async function checkClientsForOpportunity() {
-    const pool = globalMarket.top20.slice(1, 15); // #2 to #15
-    let bestCoin = null; let maxJump = 0;
+    // A REGRA É SAGRADA: SÓ OLHAMOS QUEM ESTÁ ENTRE AS POSIÇÕES REAIS #2 E #15
+    const pool = globalMarket.top15.slice(1, 15); 
+    let bestCoin = null; 
+    let maxJump = 0;
     
-    pool.forEach((c, i) => {
+    pool.forEach((c) => {
+        const sym = c.symbol.replace('USDT','');
+        
+        // FILTROS DE EXCLUSÃO (Somente operamos moedas válidas dentro do 2-15)
+        if (BLACKLIST.includes(sym)) return;
+        if (c.isMonitoring) return;
+        if (c.quoteVol < 1000000) return;
+        if (sym.includes('UP') || sym.includes('DOWN')) return; // Bloqueio alavancadas
+
         const jump = globalMarket.coinJumps[c.symbol] || 0;
-        const currentRank = i + 2; // slice(1, 15) starts from index 1 which is Rank #2
-        if (c.quoteVol >= 1000000 && jump > maxJump) {
-            maxJump = jump; bestCoin = { ...c, rank: currentRank };
+        
+        // MAIOR VOLATILIDADE DESTACADA EM 20 SEGUNDOS (Mínimo jump > 0)
+        if (jump > maxJump) {
+            bestCoin = c;
+            maxJump = jump;
         }
     });
 
     if (!bestCoin) {
-        addServerLog(null, `📡 Ciclo concluído: Nenhuma moeda (#2-15) atingiu força de disparo.`, 'info');
         return;
     }
 
-    addServerLog(null, `🎯 JANELA 20s FECHADA: Vencedora isolada ${bestCoin.symbol} (Rank #${bestCoin.rank}) com Pulo de +${maxJump.toFixed(3)}%`, 'trigger');
+    addServerLog(null, `🎯 TIRO ALFA REAL: ${bestCoin.symbol} (Rank Real #${bestCoin.realRank}) | Maior Pulo: +${maxJump.toFixed(3)}% | Vol: ${(bestCoin.quoteVol/1000).toFixed(0)}K`, 'trigger');
 
     for (const client of clients) {
         if (client.status !== 'SCANNING' || !client.apiKey) continue;
@@ -261,7 +279,7 @@ async function checkClientsForOpportunity() {
         if (client.tradedCoins && client.tradedCoins.includes(bestCoin.symbol)) continue;
 
         if (Date.now() > (client.nextAllowedTradeTime || 0)) {
-            addServerLog(client.id, `🚀 Sniper elegeu ${bestCoin.symbol} (#${bestCoin.rank}) com +${maxJump.toFixed(3)}%`, 'buy');
+            addServerLog(client.id, `🚀 Sniper elegeu ${bestCoin.symbol} (Rank Real #${bestCoin.realRank}) com +${maxJump.toFixed(3)}%`, 'buy');
             executeRealBuy(client, bestCoin.symbol, bestCoin.price);
         }
     }
@@ -413,7 +431,7 @@ app.get('/status', (req, res) => {
             apiKey: '***',
             apiSecret: '***'
         })),
-        top20: globalMarket.top20,
+        top20: globalMarket.top15,
         coinJumps: globalMarket.coinJumps,
         countdownRemaining: globalMarket.countdownRemaining,
         pingCount: globalPingCount,
