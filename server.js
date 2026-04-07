@@ -135,11 +135,19 @@ function loadDatabase() {
             });
         } catch (e) { console.error('Erro ao carregar DB:', e.message); clients = []; }
     } else {
-        // Cria admin padrão no primeiro boot se não houver DB
-        const admin = { ...VIRGIN_TEMPLATE, id: 1, username: 'admin', password: 'alfa777', clientName: 'Master Admin' };
+        // Cria admin padrão no primeiro boot (senha Vega oficial)
+        const admin = { ...VIRGIN_TEMPLATE, id: 1, username: 'admin', password: 'vega2026', clientName: 'Master Admin' };
         clients.push(admin);
         saveDatabase();
     }
+    
+    // MIGRATION: Garante que o acesso admin online mude de alfa777 para vega2026 agora mesmo
+    clients.forEach(c => {
+        if (c.username === 'admin' && c.password === 'alfa777') {
+            c.password = 'vega2026';
+            saveDatabase();
+        }
+    });
 }
 loadDatabase();
 
