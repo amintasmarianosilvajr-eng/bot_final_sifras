@@ -518,29 +518,22 @@ async function checkClientsForOpportunity() {
     }
 }
 
-// --- FUNÇÕES DE TRADE ---
+// --- FUNÇÕES DE TRADE FERRARI v8.6.3 ---
 async function executeRealBuy(client, symbol, price) {
-    updateStatus(client, 'IN_TRADE', `Comprando Alvo: ${symbol}`);
+    updateStatus(client, 'IN_TRADE', `Comprando: ${symbol}`);
     try {
         const account = await binanceRequest(client, '/api/v3/account');
         if (account.error || !account.balances) {
-            addServerLog(client.id, `Erro ao acessar conta: ${account.msg || 'Chave API Inválida'}`, 'error');
-            updateStatus(client, 'SCANNING');
-            return;
+            addServerLog(client.id, `Erro API: ${account.msg || 'Falha na conta'}`, 'error');
+            updateStatus(client, 'SCANNING'); return;
         }
 
-        const usdtBalance = account.balances.find(b => b.asset === 'USDT');
-        
-        let totalVal = 0;
-        if (usdtBalance) {
-            totalVal = parseFloat(usdtBalance.free);
-        }
-        let amount = totalVal * (client.buyPercentage || 1.0);
+        const usdt = account.balances.find(b => b.asset === 'USDT');
+        const amount = (parseFloat(usdt.free) || 0) * (client.buyPercentage || 1.0);
 
-        if (amount < 10.70) { // Binance mínimo é $10.00, usamos $10.70 conforme solicitado
-            addServerLog(client.id, `Saldo insuficiente ($${amount.toFixed(2)}) para operar com segurança (Mínimo definido: $10.70)`, 'balance');
-            updateStatus(client, 'SCANNING');
-            return;
+        if (amount < 11) {
+            addServerLog(client.id, `Saldo USDT insuficiente ($${amount.toFixed(2)}) para operar.`, 'balance');
+            updateStatus(client, 'SCANNING'); return;
         }
 
         const buyOrder = await binanceRequest(client, '/api/v3/order', 'POST', {
@@ -548,213 +541,106 @@ async function executeRealBuy(client, symbol, price) {
         });
 
         if (buyOrder.error) {
-            // FIREWALL ANTI-GHOST TRADE: Verifica se apesar do erro/timeout, a ordem entrou na corretora silenciosamente!
-            const checkAcc = await binanceRequest(client, '/api/v3/account');
-            const coinAsset = symbol.replace('USDT', '');
-            const coinBal = checkAcc.balances ? checkAcc.balances.find(b => b.asset === coinAsset) : null;
-            
-            if (coinBal && parseFloat(coinBal.free) > 0.0) {
-                addServerLog(client.id, `✅ Trade assumido por fail-safe (Timeout Rede mascarou sucesso Binance)!`, 'buy');
-                // Estimativa de preço se não temos o buyOrder completo
-                client.buyPrice = price; 
-            } else {
-                addServerLog(client.id, `❌ ERRO COMPRA BINANCE [${buyOrder.code}]: ${buyOrder.msg || 'Falha ao processar ordem'}`, 'error');
-                updateStatus(client, 'SCANNING');
-                return;
-            }
-        } else {
-            // Captura o preço real executado (Média dos fills)
-            let avgPrice = price;
-            if (buyOrder.fills && buyOrder.fills.length > 0) {
-                const totalCost = buyOrder.fills.reduce((sum, f) => sum + (parseFloat(f.price) * parseFloat(f.qty)), 0);
-                const totalQty = buyOrder.fills.reduce((sum, f) => sum + parseFloat(f.qty), 0);
-                avgPrice = totalCost / totalQty;
-            }
-            client.buyPrice = avgPrice;
-            addServerLog(client.id, `✅ COMPRA EXECUTADA (MARKET) | ID: ${buyOrder.orderId} | Preço Médio: ${avgPrice.toFixed(8)} USDT`, 'buy');
+            addServerLog(client.id, `❌ ERRO COMPRA: ${buyOrder.msg}`, 'error');
+            updateStatus(client, 'SCANNING'); return;
         }
 
-    // Atualizar saldos e logs
-    client.status = 'STOPPED'; // Pausa pós-trade
-    client.operationsCount++;
-    client.cycleCount++;
-    client.tradedCoins.push(symbol);
-    
-    // DEFINIR SISTEMA DE DESCANSO REAL
-    const now = Date.now();
-    let pauseTime = 2 * 60 * 1000; // Padrão 2 minutos
-    if (client.cycleCount >= 3) {
-        pauseTime = 15 * 60 * 1000; // 15 minutos a cada 3 ciclos
-        client.cycleCount = 0;
-        addServerLog(client.id, `⏸️ DESCANSO LONGO: 15 minutos de pausa após 3 operações.`, 'info');
-    } else {
-        addServerLog(client.id, `⏸️ DESCANSO CURTO: 2 minutos de pausa.`, 'info');
-    }
-    client.nextAllowedTradeTime = now + pauseTime;
-    
-    // Voltar ao SCANNING automaticamente após a pausa?
-    setTimeout(() => {
-        if (client.status === 'STOPPED') {
-            client.status = 'SCANNING';
-            addServerLog(client.id, `🔄 DESCANSO FINALIZADO: Retornando ao Radar Ferrari.`, 'trigger');
-            saveDatabase();
+        // Preço Médio Real de Compra
+        let avgPrice = price;
+        if (buyOrder.fills && buyOrder.fills.length > 0) {
+            const cost = buyOrder.fills.reduce((s, f) => s + (parseFloat(f.price) * parseFloat(f.qty)), 0);
+            const qty = buyOrder.fills.reduce((s, f) => s + parseFloat(f.qty), 0);
+            avgPrice = cost / qty;
         }
-    }, pauseTime);
 
-    saveDatabase();
-        // Mantém apenas as últimas 5 na memória para evitar repetição curta
-        if (client.tradedCoins.length > 5) client.tradedCoins.shift();
-
+        client.buyPrice = avgPrice;
         client.currentAsset = symbol;
-        client.entryPrice = client.buyPrice;
-        client.tradeStartTime = Date.now();
-
-        // Inicia monitor exclusivo deste trade
-        monitorTrade(client, symbol, client.buyPrice);
-
+        addServerLog(client.id, `✅ COMPRA EXECUTADA: ${symbol} @ $${avgPrice.toFixed(8)}`, 'buy');
+        
+        // Inicia Monitoramento de Lucro
+        monitorTrade(client, symbol);
     } catch (e) {
-        addServerLog(client.id, "Aviso COMPRA: " + e.message, 'error');
-        // Último Fail-Safe de catch
-        try {
-            const checkAcc2 = await binanceRequest(client, '/api/v3/account');
-            const coinAsset2 = symbol.replace('USDT', '');
-            const coinBal2 = checkAcc2.balances ? checkAcc2.balances.find(b => b.asset === coinAsset2) : null;
-            if (coinBal2 && parseFloat(coinBal2.free) > 0.0) {
-                addServerLog(client.id, `✅ Trade assumido por fail-safe do Catch!`, 'buy');
-                client.currentAsset = symbol;
-                client.entryPrice = price;
-                client.buyPrice = price;
-                client.tradeStartTime = Date.now();
-                updateStatus(client, 'IN_TRADE', `Operação Assumida Fail-Safe: ${symbol}`);
-                monitorTrade(client, symbol, price);
-                return;
-            }
-        } catch(e2) {}
-
         updateStatus(client, 'SCANNING');
     }
 }
 
-// Monitor específico de trade em andamento
-async function monitorTrade(client, symbol, entryPrice) {
+async function monitorTrade(client, symbol) {
     const monitorInterval = setInterval(async () => {
-        if (client.status === 'IDLE') return clearInterval(monitorInterval);
+        if (client.status === 'IDLE' || !client.currentAsset) return clearInterval(monitorInterval);
 
-        const ticker = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 3000 }).then(r => r.json());
-        const currentPrice = parseFloat(ticker.price);
-        
-        // Saída por Lucro: 0.8% Líquido + Taxas (~1.0% Variação)
-        const diff = ((currentPrice - client.buyPrice) / client.buyPrice) * 100;
-        const targetVariation = client.profitTarget + 0.2; // 0.8 + 0.2 de taxas aproximadas
+        try {
+            const ticker = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json());
+            const current = parseFloat(ticker.price);
+            
+            // 0.8% Líquido + 0.2% Taxas = 1.0% Variação no preço
+            const diff = ((current - client.buyPrice) / client.buyPrice) * 100;
+            const target = 1.0; 
 
-        if (diff >= targetVariation) {
-            console.log(`[CLIENT ${client.id}] ALVO ALCANÇADO: ${diff.toFixed(2)}% | Executando Venda...`);
-            executeRealSell(client, symbol, currentPrice, true);
-            clearInterval(monitorInterval);
-        }
-        
-        // REMOVIDO STOP LOSS (Estratégia Ferrari v8.6.3 Original)
+            if (diff >= target) {
+                console.log(`[ALVO] ${symbol} atingiu +${diff.toFixed(2)}%`);
+                clearInterval(monitorInterval);
+                executeRealSell(client, symbol);
+            }
+        } catch (e) {}
     }, 5000);
 }
 
-async function executeRealSell(client, symbol, currentPrice, isProfit) {
-    updateStatus(client, 'IN_TRADE', `Vendendo ${symbol}...`);
+async function executeRealSell(client, symbol) {
+    updateStatus(client, 'IN_TRADE', `Vendendo: ${symbol}`);
     try {
-        const exchangeInfo = globalMarket.exchangeInfo || await fetchWithTimeout(`https://api.binance.com/api/v3/exchangeInfo?symbol=${symbol}`, { timeout: 5000 }).then(r => r.json());
-        const sInfo = exchangeInfo.symbols.find(s => s.symbol === symbol);
-        const stepSize = sInfo.filters.find(f => f.filterType === 'LOT_SIZE').stepSize;
-        const precision = stepSize.indexOf('1') - stepSize.indexOf('.');
-
         const account = await binanceRequest(client, '/api/v3/account');
-        if (account.error || !account.balances) {
-            addServerLog(client.id, `Erro ao buscar saldo para venda: ${account.msg || 'Falha na conta'}`, 'error');
-            return;
-        }
-
         const asset = symbol.replace('USDT', '');
         const balance = account.balances.find(b => b.asset === asset);
-        if (!balance) {
-            addServerLog(client.id, `Ativo ${asset} não encontrado no saldo para venda.`, 'error');
-            return;
+        
+        if (!balance || parseFloat(balance.free) <= 0) {
+            addServerLog(client.id, `Saldo de ${asset} não encontrado para venda.`, 'error');
+            updateStatus(client, 'SCANNING'); return;
         }
-        let qty = parseFloat(balance.free);
 
-        const factor = Math.pow(10, precision > 0 ? precision : 0);
-        qty = Math.floor(qty * factor) / factor;
+        const sellOrder = await binanceRequest(client, '/api/v3/order', 'POST', {
+            symbol: symbol, side: 'SELL', type: 'MARKET', quantity: parseFloat(balance.free).toFixed(8) 
+        });
 
-        if (qty > 0) {
-            const sellOrder = await binanceRequest(client, '/api/v3/order', 'POST', {
-                symbol: symbol, side: 'SELL', type: 'MARKET', quantity: qty.toFixed(precision > 0 ? precision : 0)
-            });
-
-            if (sellOrder.error) {
-                addServerLog(client.id, `❌ ERRO VENDA BINANCE [${sellOrder.code}]: ${sellOrder.msg || 'Falha ao processar ordem'}`, 'error');
-                // Se falhou, não limpa o status para permitir intervenção manual ou nova tentativa
-                return;
-            } else {
-                // Captura preço real de venda
-                let sellPriceReal = 0;
-                if (sellOrder.fills && sellOrder.fills.length > 0) {
-                    const totalRev = sellOrder.fills.reduce((sum, f) => sum + (parseFloat(f.price) * parseFloat(f.qty)), 0);
-                    const totalQty = sellOrder.fills.reduce((sum, f) => sum + parseFloat(f.qty), 0);
-                    sellPriceReal = totalRev / totalQty;
-                } else {
-                    const ticker = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 5000 }).then(r => r.json());
-                    sellPriceReal = parseFloat(ticker.price);
-                }
-                
-                const profitPercent = ((sellPriceReal - client.buyPrice) / client.buyPrice) * 100;
-                client.totalProfit += profitPercent;
-                client.operationsCount++;
-                client.lastSoldSymbol = symbol;
-                client.lastSoldTime = Date.now();
-                client.currentAsset = null;
-                
-                addServerLog(client.id, `💰 VENDA CONCLUÍDA | ID: ${sellOrder.orderId} | Preço: ${sellPriceReal.toFixed(8)} | Lucro: ${profitPercent.toFixed(2)}%`, 'sell');
-
-                // SALVAR NO HISTÓRICO PARA O RELATÓRIO
-                client.tradeHistory.push({
-                    date: new Date().toLocaleString('pt-BR'),
-                    symbol: symbol,
-                    buyPrice: client.buyPrice,
-                    sellPrice: sellPriceReal,
-                    profit: profitPercent,
-                    result: profitPercent >= 0 ? 'GAIN' : 'LOSS'
-                });
-            }
-        } else {
-            addServerLog(client.id, `⚠️ ERRO QUANTIDADE: Saldo de ${symbol} indisponível para venda.`, 'error');
-            updateStatus(client, 'IDLE');
+        if (sellOrder.error) {
+            addServerLog(client.id, `❌ ERRO VENDA: ${sellOrder.msg}`, 'error');
             return;
         }
 
-        // SALVAR NO DISCO
-        saveDatabase();
+        const profit = ((parseFloat(sellOrder.fills[0].price) - client.buyPrice) / client.buyPrice) * 100;
+        client.totalProfit += profit;
+        client.operationsCount++;
+        client.cycleCount = (client.cycleCount || 0) + 1;
+        client.tradedCoins.push(symbol);
+        if (client.tradedCoins.length > 10) client.tradedCoins.shift();
 
-        // Check OBRIGATÓRIO de 3 Ciclos e 15 Minutos de Pausa
-        if (client.operationsCount >= client.maxOpsBeforePause) {
-            // "Após 3 ciclos com lucro de 0,6%, pausa de 15 minutos e entra-se no ciclo seguinte."
-            updateStatus(client, 'COOLDOWN');
-            addServerLog(client.id, `🔄 META DE 3 CICLOS CONCLUÍDA! Iniciando Pausa Programada de 15 Minutos.`, 'info');
-            setTimeout(() => {
-                client.operationsCount = 0;
-                updateStatus(client, 'SCANNING');
-                addServerLog(client.id, "▶️ FIM DA PAUSA DE 15 MIN. Retornando ciclo de 20s ativado.", 'info');
-            }, client.pauseDuration);
-        } else {
-            // PAUSA ENTRE OPERAÇÕES (2 MINUTOS padrão para descanso)
-            updateStatus(client, 'COOLDOWN');
-            addServerLog(client.id, `✅ 1 Ciclo Concluído. Pausa de descanso rápida (2m) antes da próxima caça.`, 'info');
-            setTimeout(() => {
-                updateStatus(client, 'SCANNING');
-                addServerLog(client.id, "Retornando da pausa pós-trade. Sniper Ativo.", 'info');
-            }, 120000); // 2 minutos
-        }
+        addServerLog(client.id, `💰 VENDA CONCLUÍDA: ${symbol} | Lucro: ${profit.toFixed(2)}%`, 'sell');
+        
+        client.currentAsset = null;
+        applyRestSystem(client);
+    } catch (e) { updateStatus(client, 'SCANNING'); }
+}
 
-    } catch (e) {
-        addServerLog(client.id, "Erro Venda: " + e.message, 'error');
-        updateStatus(client, 'IDLE'); // Para em caso de erro crítico
+function applyRestSystem(client) {
+    const now = Date.now();
+    let pauseTime = 2 * 60 * 1000; // 2 minutos
+    
+    if (client.cycleCount >= 3) {
+        pauseTime = 15 * 60 * 1000; // 15 minutos
+        client.cycleCount = 0;
+        addServerLog(client.id, `⏸️ DESCANSO LONGO (3 CICLOS): 15 minutos de pausa.`, 'info');
+    } else {
+        addServerLog(client.id, `⏸️ DESCANSO CURTO: 2 minutos de pausa.`, 'info');
     }
+
+    client.nextAllowedTradeTime = now + pauseTime;
+    client.status = 'STOPPED';
+
+    setTimeout(() => {
+        client.status = 'SCANNING';
+        addServerLog(client.id, `🔄 DESCANSO FINALIZADO: Retornando ao Radar Ferrari.`, 'trigger');
+        saveDatabase();
+    }, pauseTime);
+    saveDatabase();
 }
 
 // --- ENDPOINTS ---
