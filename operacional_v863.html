@@ -368,7 +368,7 @@
             <!-- Dinamicamente preenchido -->
         </div>
     </div>
-    <div id="profitOverlay">
+    <div id="profitOverlay" style="display: none !important;">
         <img src="logo_fluxo_alfa.png" class="pulsing-logo" onerror="this.src='/favicon.ico';">
         <div class="profit-text">LUCRO ALFA NÃO BINÁRIO ATINGIDO</div>
     </div>
@@ -745,14 +745,14 @@
             try {
                 const url = monitoredClientId ? `${API_URL}/status?clientId=${monitoredClientId}` : `${API_URL}/status`;
                 const res = await fetch(url);
-                const data = await res.json();
-                lastData = data;
+                const state = await res.json();
+                lastData = state;
 
                 // DETECÇÃO DE NOVO LUCRO
-                if (lastOpCount !== -1 && data.operationsCount > lastOpCount) {
+                if (lastOpCount !== -1 && state.operationsCount > lastOpCount) {
                     showProfitCelebration();
                 }
-                lastOpCount = data.operationsCount;
+                lastOpCount = state.operationsCount;
 
                 // Atualizar Hub de Status (10 clientes)
                 const tradesList = document.getElementById('activeTradesList');
