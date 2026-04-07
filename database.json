@@ -2,30 +2,24 @@
   {
     "id": 1,
     "username": "admin",
-    "password": "alfa777",
-    "clientName": "Amintas",
-    "apiKey": "x5Sbl4fP9g3CdkOyIMf6BhHHKFpuWDEi24Ed0kbM7fNPOQ8ScMlXQP1jIZlmJSSl",
-    "apiSecret": "QcDUVKRGKqSlPkVaEwQe7MxNYHz5N97AMFarcD5NcwfNjOGDSxveA0mC84bQrCmj",
-    "status": "IN_TRADE",
-    "currentAsset": "DEGOUSDT",
-    "buyPrice": 0.341,
-    "entryPrice": 0.341,
-    "totalProfit": 0.8017103153393765,
-    "tradeHistory": [
-      {
-        "date": "06/04/2026, 11:36:03",
-        "symbol": "REDUSDT",
-        "buyPrice": 0.1871,
-        "sellPrice": 0.18859999999999996,
-        "profit": 0.8017103153393765,
-        "result": "GAIN"
-      }
-    ],
-    "tradedCoins": ["REDUSDT"],
-    "buyPercentage": 1,
-    "isInfinityLoop": false,
-    "maxOpsBeforePause": 3,
-    "profitTarget": 0.6,
-    "stopLoss": 4.0
+    "password": "vega2026",
+    "clientName": "Master Admin",
+    "isApproved": true,
+    "apiKey": "",
+    "apiSecret": "",
+    "entryThreshold": 0,
+    "buyPercentage": 1.0,
+    "operationsCount": 0,
+    "totalProfit": 0,
+    "currentAsset": null,
+    "buyPrice": 0,
+    "status": "IDLE",
+    "tradeHistory": [],
+    "tradedCoins": [],
+    "lastTradeTime": 0,
+    "cycleCount": 0,
+    "nextAllowedTradeTime": 0,
+    "profitTarget": 0.8,
+    "stopLoss": 0
   }
 ]
