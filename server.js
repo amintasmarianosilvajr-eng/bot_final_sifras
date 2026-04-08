@@ -364,9 +364,23 @@ async function executeRealSell(client, symbol) {
         const bal = acc.balances.find(b => b.asset === asset);
         if (!bal) return;
 
+        if (!globalMarket.exchangeInfo) {
+            addServerLog(client.id, `❌ ERRO VENDA: Exchange Info não carregado.`, 'error');
+            client.status = 'SCANNING'; return;
+        }
         const exInfo = globalMarket.exchangeInfo.symbols.find(s => s.symbol === symbol);
-        const step = exInfo.filters.find(f => f.filterType === 'LOT_SIZE').stepSize;
-        const prec = step.indexOf('1') - 1;
+        if (!exInfo) {
+            addServerLog(client.id, `❌ ERRO VENDA: Symbol Info não encontrado para ${symbol}.`, 'error');
+            client.status = 'SCANNING'; return;
+        }
+        const lotSizeFilter = exInfo.filters.find(f => f.filterType === 'LOT_SIZE');
+        if (!lotSizeFilter) {
+            addServerLog(client.id, `❌ ERRO VENDA: Filtro LOT_SIZE não encontrado para ${symbol}.`, 'error');
+            client.status = 'SCANNING'; return;
+        }
+
+        const step = lotSizeFilter.stepSize;
+        const prec = step.includes('.') ? step.split('.')[1].replace(/0+$/, '').length : 0;
         const qty = (Math.floor(parseFloat(bal.free) * Math.pow(10, prec)) / Math.pow(10, prec)).toFixed(prec);
 
         const order = await binanceRequest(client, '/api/v3/order', 'POST', {
@@ -375,6 +389,7 @@ async function executeRealSell(client, symbol) {
 
         if (order.error) {
             addServerLog(client.id, `❌ ERRO VENDA: ${order.msg}`, 'error');
+            client.status = 'SCANNING'; // Destravar o cliente mesmo se falhar a venda
             return;
         }
 
@@ -411,7 +426,8 @@ async function executeRealSell(client, symbol) {
         }, wait);
 
     } catch (e) {
-        addServerLog(client.id, `❌ ERRO VENDA: ${e.message}`, 'error');
+        addServerLog(client.id, `❌ CRASH VENDA: ${e.message}`, 'error');
+        client.status = 'SCANNING'; // Destravar em caso de crash
     }
 }
 
