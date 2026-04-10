@@ -440,18 +440,23 @@ app.get('/status', (req, res) => {
     globalPingCount++;
     const cid = parseInt(req.query.clientId) || 1;
     const c = clients.find(x => x.id === cid) || clients[0];
+    
+    // ISOLAMENTO DE DADOS (v8.6.4)
+    // Apenas o Admin (ID 1) vê o estado de todos e logs globais
+    const isAdmin = (cid === 1);
+    
     res.json({
         ...c,
-        allStats: clients.map(x => ({ 
+        allStats: isAdmin ? clients.map(x => ({ 
             ...x,
             apiKey: '***',
             apiSecret: '***'
-        })),
+        })) : [ { ...c, apiKey: '***', apiSecret: '***' } ],
         top20: globalMarket.top15,
         coinJumps: globalMarket.coinJumps,
         countdownRemaining: globalMarket.countdownRemaining,
         pingCount: globalPingCount,
-        logs: globalLogs
+        logs: isAdmin ? globalLogs : (c.logs || [])
     });
 });
 
@@ -499,9 +504,22 @@ app.post('/stop', (req, res) => {
 });
 
 app.post('/emergency', async (req, res) => {
-    console.log("!!! EMERGENCY PROTOCOL !!!");
-    for (const c of clients) {
-        if (c.status !== 'IDLE') {
+    const { clientId } = req.body;
+    console.log(`!!! EMERGENCY PROTOCOL TRIGGERED BY ID: ${clientId} !!!`);
+    
+    if (clientId === 1) {
+        // Master Admin can stop EVERYTHING
+        for (const c of clients) {
+            if (c.status !== 'IDLE') {
+                const asset = c.currentAsset;
+                c.status = 'IDLE';
+                if (asset) await executeRealSell(c, asset);
+            }
+        }
+    } else {
+        // Individual user only stops their own bot
+        const c = clients.find(x => x.id === clientId);
+        if (c && c.status !== 'IDLE') {
             const asset = c.currentAsset;
             c.status = 'IDLE';
             if (asset) await executeRealSell(c, asset);

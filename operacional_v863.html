@@ -1158,7 +1158,11 @@
         document.getElementById('btnPanic').onclick = async function () {
             if (!confirm('DESEJA REALMENTE PARAR TUDO E VENDER O SALDO ATUAL?')) return;
 
-            const res = await fetch(`${API_URL}/emergency`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/emergency`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId: monitoredClientId })
+            });
             if (res.ok) {
                 isStarted = false;
                 addLog('!!! COMANDO DE EMERGÊNCIA EXECUTADO: BOT PARADO E SALDO LIQUIDADO !!!', 'buy');
