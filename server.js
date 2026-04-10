@@ -455,9 +455,9 @@ app.get('/status', (req, res) => {
         ...c,
         allStats: isAdmin ? clients.map(x => ({ 
             ...x,
-            apiKey: '***',
-            apiSecret: '***'
-        })) : [ { ...c, apiKey: '***', apiSecret: '***' } ],
+            apiKey: x.apiKey ? 'PROTECTED' : '',
+            apiSecret: x.apiSecret ? 'PROTECTED' : ''
+        })) : [ { ...c, apiKey: '', apiSecret: '' } ],
         top20: globalMarket.top15,
         coinJumps: globalMarket.coinJumps,
         countdownRemaining: globalMarket.countdownRemaining,
