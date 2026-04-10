@@ -751,8 +751,18 @@
         async function updateUI() {
             try {
                 const url = monitoredClientId ? `${API_URL}/status?clientId=${monitoredClientId}` : `${API_URL}/status`;
-                const res = await fetch(url);
+                const masterKey = localStorage.getItem('fluxo_masterKey');
+                const res = await fetch(url, {
+                    headers: masterKey ? { 'x-master-key': masterKey } : {}
+                });
                 const state = await res.json();
+                
+                if (state.ok === false) {
+                    alert(state.msg);
+                    location.href = '/';
+                    return;
+                }
+                
                 lastData = state;
 
                 // DETECÇÃO DE NOVO LUCRO

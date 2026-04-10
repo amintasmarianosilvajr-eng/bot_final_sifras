@@ -82,7 +82,10 @@
         let lastData = { users: [] };
         async function fetchAdminData() {
             try {
-                const res = await fetch('/api/admin/data');
+                const masterKey = localStorage.getItem('fluxo_masterKey');
+                const res = await fetch('/api/admin/data', {
+                    headers: masterKey ? { 'x-master-key': masterKey } : {}
+                });
                 const data = await res.json();
                 if (!data.ok) return window.location.href = '/';
                 lastData = data;
@@ -122,14 +125,30 @@
 
         async function approveUser(id) {
             if(!confirm(`Deseja aprovar o acesso do cliente #${id}?`)) return;
-            const res = await fetch('/api/admin/approve', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ clientId: id }) });
+            const masterKey = localStorage.getItem('fluxo_masterKey');
+            const res = await fetch('/api/admin/approve', { 
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-master-key': masterKey
+                }, 
+                body: JSON.stringify({ clientId: id }) 
+            });
             if((await res.json()).ok) fetchAdminData();
         }
 
         async function deleteUser(id) {
             if(id === 1) return alert("Impossível excluir Admin Master.");
             if(!confirm(`⚠️ ATENÇÃO: Deseja excluir permanentemente o cliente #${id}?\nEsta ação é irreversível!`)) return;
-            const res = await fetch('/api/admin/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ clientId: id }) });
+            const masterKey = localStorage.getItem('fluxo_masterKey');
+            const res = await fetch('/api/admin/delete', { 
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-master-key': masterKey
+                }, 
+                body: JSON.stringify({ clientId: id }) 
+            });
             if((await res.json()).ok) fetchAdminData();
         }
 
@@ -171,9 +190,13 @@
             if(!symbol || !price) return;
             
             if(confirm(`Confirmar monitoramento de ${symbol} @ $${price} para ID ${id}?`)) {
+                const masterKey = localStorage.getItem('fluxo_masterKey');
                 const res = await fetch('/api/admin/manual-trade', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-master-key': masterKey
+                    },
                     body: JSON.stringify({ clientId: id, symbol: symbol.toUpperCase(), price: parseFloat(price) })
                 });
                 const data = await res.json();
@@ -184,9 +207,13 @@
         async function resetVirgin(id) {
             if (!confirm(`Deseja aplicar o RESET VIRGEM no cliente #${id}?\nIsso limpará histórico e logs, mantendo as configurações ideais.`)) return;
             
+            const masterKey = localStorage.getItem('fluxo_masterKey');
             const res = await fetch('/api/admin/reset', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-master-key': masterKey
+                },
                 body: JSON.stringify({ clientId: id })
             });
             const data = await res.json();
