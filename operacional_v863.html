@@ -434,50 +434,13 @@
         <div class="panel" style="margin-bottom: 1.5rem;">
             <h3
                 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--cyber-blue); font-family: 'Orbitron'; display: flex; justify-content: space-between;">
-                HUB DE CONEXÃO - 1 CLIENTE
-                <span style="font-size: 0.6rem; color: #444;">CLIQUE EM 👁️ PARA MONITORAR</span>
+                <span style="font-size: 0.6rem; color: #444;">CONFIGURAÇÃO DE SNIPER PERSONALIZADO</span>
+                <span id="labelClientId" style="font-size: 0.6rem; color: var(--cyber-blue); border: 1px solid var(--cyber-blue); padding: 2px 6px; border-radius: 4px;">ID: --</span>
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                <!-- Geração Dinâmica via script ou manual? Vou manter manual pois já estava assim, mas com os novos IDs -->
-                <script>
-                    const hubGrid = document.currentScript.parentElement;
-                    let cardsHtml = '';
-                    for (let i = 1; i <= 1; i++) {
-                        cardsHtml += `
-                        <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
-                            <div style="font-size: 0.7rem; color: var(--cyber-gold); margin-bottom: 8px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
-                                <span>CONFIGURAÇÃO ALFA #${i}</span>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div style="font-size: 0.6rem; color: var(--cyber-blue);">SALDO: <b id="balanceHub${i}">$0.00</b></div>
-                                    <div id="pulseHub${i}" class="pulse-mini" style="background: #333;"></div>
-                                    <span id="labelHub${i}" style="font-size: 0.55rem; color: #666; font-family: 'Orbitron';">OFFLINE</span>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                                <input type="text" id="clientName${i}" class="input-cyber" style="width: 25%; font-size: 0.7rem;" placeholder="NOME">
-                                <select id="buyPct${i}" class="input-cyber" style="width: 20%; font-size: 0.6rem; padding: 2px;">
-                                    <option value="1">100%</option>
-                                    <option value="0.75">75%</option>
-                                    <option value="0.5" selected>50%</option>
-                                    <option value="0.25">25%</option>
-                                </select>
-                                <button id="btnStart${i}" class="btn btn-start" style="width: 18%; padding: 6px; font-size: 0.6rem;">CONECT</button>
-                                <button id="btnInf${i}" onclick="toggleInfinity(${i})" class="btn" style="width: 8%; padding: 6px; background: #111; color: #444; border: 1px solid #222; font-size: 0.9rem; transition: 0.3s;" title="Infinity Loop Control">∞</button>
-                                <button onclick="setMonitor(${i})" class="btn" style="width: 7%; padding: 6px; background: #222; color: var(--cyber-blue); border: 1px solid var(--border-glow);" title="Monitorar">👁️</button>
-                                <button onclick="downloadReport(${i})" class="btn" style="width: 7%; padding: 6px; background: #333; color: white;" title="Baixar PDF">📄</button>
-                                <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
-                            </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Auto-Saved)">
-                                <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="SECRET (Auto-Saved)">
-                                <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
-                            </div>
-                        </div>
-                        `;
-                    }
-                    document.write('<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; width: 100%; grid-column: span 2;">' + cardsHtml + '</div>');
-                </script>
+            <div id="hubGrid" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                <!-- O Card do Cliente será gerado dinamicamente -->
             </div>
+        </div>
         </div>
 
         <!-- RADAR DE OPERAÇÕES ATIVAS (TELEMETRIA DINÂMICA) -->
@@ -643,6 +606,51 @@
             window.location.href = '/';
         }
 
+        function buildClientCard(i) {
+            const grid = document.getElementById('hubGrid');
+            if (!grid) return;
+            grid.innerHTML = `
+                <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
+                    <div style="font-size: 0.7rem; color: var(--cyber-gold); margin-bottom: 8px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+                        <span>PAINEL DE CONTROLE ALFA #${i}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="font-size: 0.6rem; color: var(--cyber-blue);">SALDO: <b id="balanceHub${i}">$0.00</b></div>
+                            <div id="pulseHub${i}" class="pulse-mini" style="background: #333;"></div>
+                            <span id="labelHub${i}" style="font-size: 0.55rem; color: #666; font-family: 'Orbitron';">OFFLINE</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <input type="text" id="clientName${i}" class="input-cyber" style="width: 25%; font-size: 0.7rem;" placeholder="NOME">
+                        <select id="buyPct${i}" class="input-cyber" style="width: 20%; font-size: 0.6rem; padding: 2px;">
+                            <option value="1">100%</option>
+                            <option value="0.75">75%</option>
+                            <option value="0.5" selected>50%</option>
+                            <option value="0.25">25%</option>
+                        </select>
+                        <button id="btnStart${i}" class="btn btn-start" style="width: 25%; padding: 6px; font-size: 0.6rem;">CONECTAR SNIPER</button>
+                        <button id="btnInf${i}" onclick="toggleInfinity(${i})" class="btn" style="width: 8%; padding: 6px; background: #111; color: #444; border: 1px solid #222; font-size: 0.9rem; transition: 0.3s;" title="Infinity Loop Control">∞</button>
+                        <button onclick="downloadReport(${i})" class="btn" style="width: 7%; padding: 6px; background: #333; color: white;" title="Baixar PDF">📄</button>
+                        <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)">
+                        <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)">
+                        <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
+                    </div>
+                </div>
+            `;
+            // Attach Event Listeners
+            initClientEvents(i);
+            
+            // Sync initial state
+            const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
+            const savedSec = localStorage.getItem(`sifras_secret_${i}`);
+            if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
+            if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            
+            document.getElementById('labelClientId').innerText = `ID: ${i}`;
+        }
+
         // Relógio de Precisão Frontend
         let frontendSeconds = 20;
         window.isEngineRunning = false;
@@ -672,11 +680,10 @@
 
         // Recuperar chaves do LocalStorage no carregamento inicial
         document.addEventListener('DOMContentLoaded', () => {
-            for (let i = 1; i <= 1; i++) {
-                const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
-                const savedSec = localStorage.getItem(`sifras_secret_${i}`);
-                if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
-                if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            if (monitoredClientId) {
+                buildClientCard(monitoredClientId);
+            } else {
+                window.location.href = '/';
             }
         });
 
@@ -1115,42 +1122,36 @@
         }
 
         document.getElementById('btnAction').onclick = async function () {
-            addLog('🚀 INICIANDO CLUSTER: Conectando todos os clientes configurados...', 'info');
-            let startedCount = 0;
+            const i = monitoredClientId;
+            if (!i) return;
+            
+            addLog('🚀 INICIANDO SNIPER...', 'info');
+            
+            const apiEl = document.getElementById(`apiKey${i}`);
+            if (!apiEl) return;
+            
+            const apiKey = apiEl.value;
+            const apiSecret = document.getElementById(`apiSecret${i}`).value;
+            const btn = document.getElementById(`btnStart${i}`);
 
-            for (let i = 1; i <= 1; i++) {
-                const apiEl = document.getElementById(`apiKey${i}`);
-                if (!apiEl) continue;
-                
-                const apiKey = apiEl.value;
-                const apiSecret = document.getElementById(`apiSecret${i}`).value;
-                const btn = document.getElementById(`btnStart${i}`);
+            if (apiKey && apiSecret && !btn.innerText.includes('ATIVO')) {
+                const clientName = document.getElementById(`clientName${i}`).value || `Cliente ${i}`;
+                const buyPercentage = document.getElementById(`buyPct${i}`).value;
 
-                // Só tenta iniciar se tiver chaves e NÃO estiver ativo
-                if (apiKey && apiSecret && !btn.innerText.includes('ATIVO')) {
-                    const clientName = document.getElementById(`clientName${i}`).value || `Cliente ${i}`;
-                    const buyPercentage = document.getElementById(`buyPct${i}`).value;
-
-                    try {
-                        const res = await fetch(`${API_URL}/start`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ clientId: i, clientName, apiKey, apiSecret, buyPercentage })
-                        });
-                        if (res.ok) {
-                            startedCount++;
-                            addLog(`${clientName}: Conectado via Cluster`, 'info');
-                        }
-                    } catch (err) {
-                        console.error(`Erro ao iniciar cliente ${i}:`, err);
+                try {
+                    const res = await fetch(`${API_URL}/start`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId: i, clientName, apiKey, apiSecret, buyPercentage })
+                    });
+                    if (res.ok) {
+                        addLog(`${clientName}: Conectado`, 'info');
                     }
+                } catch (err) {
+                    console.error(`Erro ao iniciar:`, err);
                 }
-            }
-
-            if (startedCount > 0) {
-                alert(`${startedCount} clientes foram conectados com sucesso!`);
             } else {
-                alert("Nenhum cliente disponível para conexão automática. Verifique se as chaves API estão preenchidas.");
+                alert("Verifique se as chaves API estão preenchidas ou se o bot já está ativo.");
             }
         };
 
@@ -1164,10 +1165,9 @@
             }
         };
 
-        // Event Listeners para os Clientes (v8.6.3 Safe Loop)
-        for (let i = 1; i <= 1; i++) {
+        function initClientEvents(i) {
             const btn = document.getElementById(`btnStart${i}`);
-            if (!btn) continue;
+            if (!btn) return;
 
             btn.onclick = async function () {
                 const clientName = document.getElementById(`clientName${i}`).value || `Cliente ${i}`;
@@ -1206,14 +1206,14 @@
                         });
 
                         if (res.ok) {
-                            this.innerText = 'CONECT';
+                            this.innerText = 'CONECTAR SNIPER';
                             this.style.background = 'var(--cyber-blue)';
                             addLog(`${clientName}: DESCONECTADO`, 'info');
                         }
                     }
                 } catch (err) {
                     console.error("Connection Error:", err);
-                    alert(`ERRO DE CONEXÃO: O servidor em ${API_URL || 'localhost'} parece estar desligado ou inacessível.`);
+                    alert(`ERRO DE CONEXÃO: O servidor parece estar desligado ou inacessível.`);
                 }
             };
         }

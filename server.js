@@ -462,6 +462,7 @@ app.post('/api/login', (req, res) => {
     
     const c = clients.find(x => x.username === user && x.password === pass);
     if (!c) return res.json({ ok:false, msg:'Credenciais incorretas.' });
+    if (!c.isApproved) return res.json({ ok:false, msg:'Conta aguardando aprovação do admin.' });
     res.json({ ok:true, clientId:c.id, redirect:'/operacional' });
 });
 
@@ -469,7 +470,7 @@ app.post('/api/register', (req, res) => {
     const { user, pass } = req.body;
     if (clients.find(x => x.username === user)) return res.json({ ok:false, msg:'Usuário já existe.' });
     const newId = clients.length + 1;
-    clients.push({ ...VIRGIN_TEMPLATE, id: newId, username: user, password: pass, clientName: user.split('@')[0], isApproved: true });
+    clients.push({ ...VIRGIN_TEMPLATE, id: newId, username: user, password: pass, clientName: user.split('@')[0], isApproved: false });
     saveDatabase();
     res.json({ ok:true });
 });
