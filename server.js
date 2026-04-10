@@ -469,7 +469,7 @@ app.get('/status', (req, res) => {
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     // Mestre Login
-    if (user === 'mestre@gmail.com' && pass === 'vega2026') return res.json({ ok:true, clientId:1, redirect:'/operacional' });
+    if (user === 'mestre@gmail.com' && pass === 'vega2026') return res.json({ ok:true, clientId:1, redirect:'/operacional', masterKey: 'vega2026' });
     
     const c = clients.find(x => x.username === user && x.password === pass);
     if (!c) return res.json({ ok:false, msg:'Credenciais incorretas.' });
