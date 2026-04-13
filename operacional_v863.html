@@ -808,8 +808,8 @@
                             labelHub.style.color = color !== '#333' ? color : '#666';
 
                             const balHub = document.getElementById(`balanceHub${s.id}`);
-                            if (balHub && s.balanceUSDT) {
-                                balHub.innerText = `$${s.balanceUSDT.toFixed(2)}`;
+                            if (balHub && s.balanceUSDT !== undefined) {
+                                balHub.innerText = `$${parseFloat(s.balanceUSDT).toFixed(2)}`;
                             }
                         }
                         

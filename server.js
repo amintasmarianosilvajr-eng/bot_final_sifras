@@ -530,9 +530,10 @@ app.get('/status', (req, res) => {
                 isInfinityLoop: client.isInfinityLoop,
                 tradeHistory: client.tradeHistory || [],
                 logs: (isAdmin || cid === client.id) ? (client.logs || []) : [],
+                balanceUSDT: client.balanceUSDT || 0,
                 apiKey: client.apiKey,
                 apiSecret: client.apiSecret,
-                allStats: isAdmin ? allStats : [], // PRIVACIDADE: Só o mestre vê todos
+                allStats: isAdmin ? allStats : [], 
                 top20: globalMarket.top20,
                 pingCount: globalPingCount,
                 countdownRemaining: globalMarket.countdownRemaining
@@ -605,6 +606,10 @@ app.post('/start', async (req, res) => {
                         if (ticker.price) {
                             const val = total * parseFloat(ticker.price);
                             if (val > 8.0) { // Encontramos uma posição ativa!
+                                const balHub = document.getElementById(`balanceHub${c.id}`);
+                                if (balHub && c.balanceUSDT !== undefined) {
+                                    balHub.innerText = `$${parseFloat(c.balanceUSDT).toFixed(2)}`;
+                                }
                                 c.status = 'IN_TRADE';
                                 c.currentAsset = symbol;
                                 c.currentPrice = parseFloat(ticker.price);
