@@ -441,7 +441,6 @@
                 <!-- O Card do Cliente será gerado dinamicamente -->
             </div>
         </div>
-        </div>
 
         <div class="main-layout">
             <!-- PAINEL ESQUERDO: GAUGE + RADAR -->
@@ -610,39 +609,45 @@
             } catch (e) { alert("Erro ao resetar ambiente."); }
         }
 
-        function buildClientCard(i) {
+        async function buildClientCard(i) {
             const grid = document.getElementById('hubGrid');
             if (!grid) return;
             
             grid.innerHTML = `
-                <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; width: 100%;">
-                    <div style="font-size: 0.7rem; color: var(--cyber-gold); margin-bottom: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
-                        <span>PAINEL DE CONTROLE ALFA #${i}</span>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <div style="font-size: 0.6rem; color: var(--cyber-blue);">SALDO: <b id="balanceHub${i}">$0.00</b></div>
-                            <div id="pulseHub${i}" class="pulse-mini" style="background: #333;"></div>
-                            <span id="labelHub${i}" style="font-size: 0.55rem; color: #666; font-family: 'Orbitron';">OFFLINE</span>
+                <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span style="color: var(--cyber-gold); font-size: 0.8rem; font-weight: 900; font-family:'Orbitron'">PAINEL DE CONTROLE ALFA #${i}</span>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                             <div style="font-size: 0.7rem; color: var(--cyber-blue);">SALDO: <b id="balanceHub${i}">$0.00</b></div>
+                             <div style="display: flex; align-items: center; gap: 8px;">
+                                <div id="pulseHub${i}" class="pulse-mini" style="background: #333;"></div>
+                                <span id="labelHub${i}" style="font-size: 0.6rem; color: #666; font-family:'Orbitron'">OFFLINE</span>
+                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center; width: 100%;">
-                        <input type="text" id="clientName${i}" class="input-cyber" style="width: 200px; font-size: 0.7rem;" placeholder="NOME">
-                        <select id="buyPct${i}" class="input-cyber" style="width: 120px; font-size: 0.7rem;">
-                            <option value="1">100%</option>
-                            <option value="0.75">75%</option>
-                            <option value="0.5" selected>50%</option>
-                            <option value="0.25">25%</option>
+
+                    <div style="display: flex; gap: 15px; margin-bottom: 12px; align-items: center;">
+                        <input type="text" id="clientName${i}" class="input-cyber" style="width: 250px; font-size: 0.75rem;" placeholder="NOME INVESTIDOR">
+                        <select id="buyPct${i}" class="input-cyber" style="width: 140px; font-size: 0.75rem;">
+                            <option value="1">LOTE 100%</option>
+                            <option value="0.75">LOTE 75%</option>
+                            <option value="0.5" selected>LOTE 50%</option>
+                            <option value="0.25">LOTE 25%</option>
                         </select>
-                        <button id="btnStart${i}" class="btn btn-start" style="flex: 1; padding: 10px; font-size: 0.8rem; background: var(--cyber-blue); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);">CONECTAR SNIPER</button>
-                        <button onclick="toggleInfinity(${i})" class="btn" style="width: 60px; background: #111; color: #444; border: 1px solid #222;">∞</button>
-                        <button onclick="setMonitor(${i})" class="btn" style="width: 60px; background: #222; color: var(--cyber-blue); border: 1px solid var(--border-glow);" title="Monitorar">👁️</button>
-                        <button onclick="downloadReport(${i})" class="btn" style="width: 50px; background: #333; color: white;" title="Baixar PDF">📄</button>
-                        <button onclick="resetClient(${i})" class="btn" style="width: 50px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
+                        <button id="btnStart${i}" class="btn btn-start" style="flex: 1; padding: 12px; font-size: 0.9rem;" onclick="startBot(${i})">CONECTAR SNIPER ALFA</button>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                        <input type="password" id="apiKey${i}" class="input-cyber" style="flex: 1; font-size: 0.7rem;" placeholder="API KEY (Auto-Saved)">
-                        <input type="password" id="apiSecret${i}" class="input-cyber" style="flex: 1; font-size: 0.7rem;" placeholder="SECRET (Auto-Saved)">
-                        <button onclick="resetKeys(${i})" class="btn" style="width: 40px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
-                        <button class="btn" style="width: 40px; background: transparent; color: #ff0055; border: 1px solid #333;" title="Emergency">⚡</button>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="password" id="apiKey${i}" class="input-cyber" style="flex: 1; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)">
+                        <input type="password" id="apiSecret${i}" class="input-cyber" style="flex: 1; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)">
+                        
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="toggleInfinity(${i})" class="btn" style="width: 45px; background: #111; color: #444; border: 1px solid #222;" title="Loop">∞</button>
+                            <button onclick="setMonitor(${i})" class="btn" style="width: 45px; background: #222; color: var(--cyber-blue); border: 1px solid var(--border-glow);" title="Monitorar">👁️</button>
+                            <button onclick="downloadReport(${i})" class="btn" style="width: 45px; background: #333; color: white;" title="PDF">📄</button>
+                            <button onclick="resetKeys(${i})" class="btn" style="width: 45px; background: transparent; color:#444; border: 1px solid #333">🔑</button>
+                            <button onclick="resetClient(${i})" class="btn" style="width: 45px; background: #550000; color: white; border: 1px solid #ff0055;" title="Reset">🗑️</button>
+                        </div>
                     </div>
                 </div>
             `;
