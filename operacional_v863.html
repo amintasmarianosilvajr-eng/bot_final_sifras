@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.9</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.7.0 (STABLE)</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -629,23 +629,15 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // Sync initial state - APENAS PARA O MESTRE ID 1 PARA CARREGAMENTO INSTANTÂNEO
-            if (i === 1) {
-                const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
-                const savedSec = localStorage.getItem(`sifras_secret_${i}`);
-                const savedName = localStorage.getItem(`sifras_name_${i}`);
-                if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
-                if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
-                if (savedName) document.getElementById(`clientName${i}`).value = savedName;
-            } else {
-                // CLIENTES: Abrir SEMPRE limpo por segurança (Estado Virgem). 
-                // O servidor preencherá automaticamente no primeiro 'updateUI' se houver chaves.
-                document.getElementById(`apiKey${i}`).value = '';
-                document.getElementById(`apiSecret${i}`).value = '';
-                // O nome pode ser carregado localmente para conveniência, mas chaves NÃO.
-                const savedName = localStorage.getItem(`sifras_name_${i}`);
-                if (savedName) document.getElementById(`clientName${i}`).value = savedName;
-            }
+            // Sync initial state - PERSISTÊNCIA ISOLADA POR USUÁRIO (v8.7.0)
+            const currentUser = localStorage.getItem('fluxo_user') || 'anon';
+            const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`);
+            const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`);
+            const savedName = localStorage.getItem(`sifras_name_${currentUser}`);
+            
+            if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
+            if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            if (savedName) document.getElementById(`clientName${i}`).value = savedName;
             
             document.getElementById('labelClientId').innerText = `ID: ${i}`;
         }
@@ -1233,9 +1225,10 @@
                     return;
                 }
                 
-                localStorage.setItem(`sifras_apikey_${i}`, apiKey);
-                localStorage.setItem(`sifras_secret_${i}`, apiSecret);
-                localStorage.setItem(`sifras_name_${i}`, clientName);
+                const currentUser = localStorage.getItem('fluxo_user') || 'anon';
+                localStorage.setItem(`sifras_apikey_${currentUser}`, apiKey);
+                localStorage.setItem(`sifras_secret_${currentUser}`, apiSecret);
+                localStorage.setItem(`sifras_name_${currentUser}`, clientName);
 
                 try {
                     if (!this.innerText.includes('ATIVO')) {
