@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.4</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.5 (TOTAL_VIRGIN)</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -629,11 +629,17 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // Sync initial state
-            const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
-            const savedSec = localStorage.getItem(`sifras_secret_${i}`);
-            if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
-            if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            // Sync initial state - APENAS PARA O MESTRE ID 1 PARA GARANTIR CONVENIÊNCIA
+            if (i === 1) {
+                const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
+                const savedSec = localStorage.getItem(`sifras_secret_${i}`);
+                if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
+                if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            } else {
+                // CLIENTES: Começam 100% VIRGENS (Sem carregar lixo do navegador)
+                document.getElementById(`apiKey${i}`).value = '';
+                document.getElementById(`apiSecret${i}`).value = '';
+            }
             
             document.getElementById('labelClientId').innerText = `ID: ${i}`;
         }
