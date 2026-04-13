@@ -49,6 +49,8 @@ const VIRGIN_TEMPLATE = {
     totalProfit: 0, 
     currentAsset: null, 
     buyPrice: 0,
+    targetPrice: 0,
+    currentPrice: 0,
     status: 'IDLE', 
     tradeHistory: [], 
     tradedCoins: [], 
@@ -60,6 +62,26 @@ const VIRGIN_TEMPLATE = {
     balanceUSDT: 0,
     logs: []
 };
+
+function resetToVirgin(client) {
+    client.apiKey = '';
+    client.apiSecret = '';
+    client.operationsCount = 0;
+    client.totalProfit = 0;
+    client.currentAsset = null;
+    client.buyPrice = 0;
+    client.targetPrice = 0;
+    client.currentPrice = 0;
+    client.status = 'IDLE';
+    client.tradeHistory = [];
+    client.tradedCoins = [];
+    client.lastTradeTime = 0;
+    client.cycleCount = 0;
+    client.nextAllowedTradeTime = 0;
+    client.isInfinityLoop = false;
+    client.balanceUSDT = 0;
+    client.logs = [];
+}
 
 function saveDatabase() {
     try { 
@@ -719,6 +741,7 @@ app.post('/api/admin/approve', (req, res) => {
     const c = clients.find(x => x.id === req.body.clientId);
     if (c) {
         c.isApproved = true;
+        resetToVirgin(c); // Garantir que aprovações comecem 100% LIMPAS
         saveDatabase();
         res.json({ ok: true });
     } else res.json({ ok: false });
@@ -752,14 +775,10 @@ app.post('/api/admin/manual-trade', (req, res) => {
 });
 
 app.post('/api/admin/reset', (req, res) => {
+    if (req.headers['x-master-key'] !== 'vega2026') return res.status(401).json({ ok: false });
     const c = clients.find(x => x.id === req.body.clientId);
     if (c) {
-        c.tradeHistory = [];
-        c.totalProfit = 0;
-        c.operationsCount = 0;
-        c.tradedCoins = [];
-        c.status = 'IDLE';
-        c.currentAsset = null;
+        resetToVirgin(c);
         saveDatabase();
         res.json({ ok: true });
     } else res.json({ ok: false });

@@ -114,6 +114,7 @@
                         <td class="user-actions">
                             ${!isApproved ? `<button class="btn btn-reset" style="background:#0b9; color:#000;" onclick="approveUser(${u.id})">APROVAR</button>` : ''}
                             <button class="btn btn-reset" onclick="recoverTrade(${u.id})">RECUPERAR</button>
+                            <button class="btn btn-reset" onclick="resetVirgin(${u.id})" style="background: #222; border-color: #ff0055; color: #ff0055;">✨ LIMPAR</button>
                             <button class="btn btn-reset" onclick="downloadRegPDF(${u.id})" style="background:#222; border-color:#00f2ff; color:#00f2ff;">📄 CAD</button>
                             <button class="btn btn-reset" onclick="downloadHistPDF(${u.id})" style="background:#222; border-color:#00ff9d; color:#00ff9d;">📈 HIST</button>
                             <button class="btn btn-reset" style="background:rgba(255,0,0,0.1); border-color:red; color:red;" onclick="deleteUser(${u.id})">EXCLUIR</button>
