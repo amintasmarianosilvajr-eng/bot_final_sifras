@@ -1,10 +1,11 @@
-// FLUXO ALFA ENGINE v8.6.3 GOLD - CERTIFIED
+// FLUXO ALFA ENGINE v8.6.4 GOLD - CERTIFIED
 const express = require('express');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const VERSION = "v8.6.4 (VIRGIN_SAFE)";
 
 // --- CONFIGURAÇÃO DE PERSISTÊNCIA ---
 const VOLUME_PATH = '/app/data';
@@ -64,8 +65,10 @@ const VIRGIN_TEMPLATE = {
 };
 
 function resetToVirgin(client) {
-    client.apiKey = '';
-    client.apiSecret = '';
+    if (client.id !== 1) {
+        client.apiKey = '';
+        client.apiSecret = '';
+    }
     client.operationsCount = 0;
     client.totalProfit = 0;
     client.currentAsset = null;
@@ -513,6 +516,7 @@ app.get('/status', (req, res) => {
             // Isolated data for the specific client
             return res.json({
                 ok: true,
+                version: VERSION,
                 id: client.id,
                 name: client.clientName,
                 status: client.status,
@@ -536,7 +540,7 @@ app.get('/status', (req, res) => {
         }
 
         const isAdminGlobal = (masterKey === 'vega2026');
-        return res.json({ ok: true, allStats: isAdminGlobal ? allStats : [], top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
+        return res.json({ ok: true, version: VERSION, allStats: isAdminGlobal ? allStats : [], top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
     } catch (e) {
         res.status(500).json({ ok: false, msg: e.message });
     }

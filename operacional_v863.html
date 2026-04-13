@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span style="color: var(--cyber-green);">ALFA v8.6.3</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.4</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -674,6 +674,14 @@
             }
         });
 
+        function resetToVirgin(client) {
+            if (client.id !== 1) {
+                client.apiKey = '';
+                client.apiSecret = '';
+            }
+            client.operationsCount = 0;
+        }
+
         function setMonitor(id) {
             monitoredClientId = id;
             document.getElementById('viewingLabel').innerText = `MONITORANDO: CLIENTE #${id}`;
@@ -752,6 +760,10 @@
                 
                 lastData = state;
 
+                if (state.version) {
+                    document.getElementById('versionTag').innerText = `ALFA ${state.version}`;
+                }
+
                 // DETECÇÃO DE NOVO LUCRO
                 if (lastOpCount !== -1 && state.operationsCount > lastOpCount) {
                     showProfitCelebration();
@@ -816,19 +828,6 @@
 
                         if (inputKey && s.apiKey && !inputKey.value) inputKey.value = s.apiKey;
                         if (inputSec && s.apiSecret && !inputSec.value) inputSec.value = s.apiSecret;
-
-                        // NOVA REGRA VIRGEM: Se o servidor retornou conta LIMPA (sem chaves),
-                        // mas o navegador ainda tem algo no localStorage desse ID, limpamos o local também.
-                        if (s.id === monitoredClientId) {
-                            if (!s.apiKey && localStorage.getItem(`sifras_apikey_${s.id}`)) {
-                                localStorage.removeItem(`sifras_apikey_${s.id}`);
-                                if (inputKey) inputKey.value = '';
-                            }
-                            if (!s.apiSecret && localStorage.getItem(`sifras_secret_${s.id}`)) {
-                                localStorage.removeItem(`sifras_secret_${s.id}`);
-                                if (inputSec) inputSec.value = '';
-                            }
-                        }
 
                         // Atualizar Estado do Botão
                         if (btnStart) {
