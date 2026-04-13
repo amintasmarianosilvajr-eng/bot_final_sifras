@@ -351,6 +351,15 @@
             height: 8px;
             border-radius: 50%;
             display: inline-block;
+            transition: 0.3s;
+        }
+        .pulse-active {
+            animation: blinkStatus 1.5s infinite;
+        }
+        @keyframes blinkStatus {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.3); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         .client-card-active {
@@ -373,60 +382,44 @@
         <div class="profit-text">LUCRO ALFA NÃO BINÁRIO ATINGIDO</div>
     </div>
     <div class="container">
-        <header class="top-navbar"
-            style="position: relative; display: flex; justify-content: center; align-items: center; padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 40px;">
-                <!-- SifrasInvest 3D Style -->
-                <div
-                    style="display: flex; flex-direction: column; align-items: center; line-height: 1; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));">
-                    <div
-                        style="font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; display: flex;">
-                        <span
-                            style="color: #FF4500; text-shadow: 1px 1px #802300, 2px 2px #802300, 3px 3px 15px rgba(255,69,0,0.4);">Sifras</span>
-                        <span
-                            style="color: #8A2BE2; text-shadow: 1px 1px #4b177d, 2px 2px #4b177d, 3px 3px 15px rgba(138,43,226,0.4);">Invest</span>
+        <header class="top-navbar" style="padding: 1rem 2rem; position: relative; display: flex; justify-content: space-between; align-items: center; background: #000; border: 1px solid var(--border-glow); border-radius: 20px; margin-bottom: 2rem; min-height: 100px;">
+            <div style="display: flex; align-items: center; gap: 30px;">
+                <!-- Logo SifrasInvest Reconstructed from Art -->
+                <div style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
+                    <div style="font-family: 'Orbitron', sans-serif; font-size: 1.6rem; font-weight: 900; letter-spacing: -1px;">
+                        <span style="color: var(--cyber-green); text-shadow: 0 0 10px rgba(0, 255, 157, 0.4);">Sifras</span><span style="color: #fff; opacity: 0.9;">Invest</span>
                     </div>
-                    <div
-                        style="font-family: 'Outfit', sans-serif; font-size: 0.6rem; color: #fff; letter-spacing: 2px; margin-top: 5px; font-weight: 700; opacity: 0.8; text-transform: uppercase;">
-                        Investir é preciso.
+                    <div style="font-family: 'Outfit', sans-serif; font-size: 0.55rem; color: #888; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; font-weight: 600;">
+                        Investir é preciso
                     </div>
                 </div>
 
-                <div
-                    style="width: 2px; height: 50px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.3), transparent); margin: 0 10px;">
-                </div>
+                <div style="width: 1px; height: 40px; background: rgba(255,255,255,0.1);"></div>
 
-                <!-- Fluxo Alfa 3D Style -->
-                <div
-                    style="display: flex; align-items: center; gap: 15px; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%); padding: 12px 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);">
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div
-                            style="font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-                            FLUXO <span
-                                style="color: #82b941; text-shadow: 1px 1px #3d591e, 2px 2px #3d591e, 0 0 20px rgba(130,185,65,0.4);">ALFA v8.6.3</span>
-                        </div>
-                        <div
-                            style="height: 3px; width: 100%; background: linear-gradient(90deg, #82b941, #fff, transparent); margin-top: 4px; border-radius: 2px; box-shadow: 0 2px 10px rgba(130,185,65,0.6);">
-                        </div>
-                        <div style="font-size: 0.5rem; color: #82b941; margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-                             🛰️ Binance Sync Active
-                        </div>
+                <!-- Text Centrais da Arte -->
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-family: 'Orbitron'; font-size: 0.7rem; color: var(--cyber-green); font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);">
+                        OPERAÇÕES NÃO BINÁRIAS
+                    </div>
+                    <div style="font-family: 'Orbitron'; font-size: 0.9rem; color: #fff; font-weight: 900; letter-spacing: 3px; margin-top: 2px;">
+                        FLUXO <span style="color: var(--cyber-gold);">ALFA</span> <span style="font-size: 0.6rem; vertical-align: middle; color: #666;">v8.6.3</span>
+                    </div>
+                    <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; opacity: 0.8;">
+                         🛰️ BINANCE SYNC ACTIVE
                     </div>
                 </div>
-
-                <!-- BOTÃO BAIXAR SISTEMA (Lado da Logomarca) -->
-                <button onclick="window.open('/download-software')"
-                    style="background: #000; color: #82b941; border: 2px solid #82b941; padding: 10px 20px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.7rem; font-weight: 900; cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(130,185,65,0.4); text-transform: uppercase;">
-                    Baixe agora seu sistema
-                </button>
-                <button onclick="logout()"
-                    style="background: rgba(255,0,0,0.1); color: #ff0055; border: 1px solid #ff0055; padding: 10px 20px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.7rem; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; margin-left: 10px;">
+            </div>
+            
+            <!-- Botões Funcionais Magnéticos -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button onclick="logout()" 
+                    style="background: transparent; color: #ff0055; border: 1px solid #ff0055; padding: 8px 20px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: 0.3s; text-transform: uppercase;">
                     Sair
                 </button>
-            </div>
-            <div class="hub-form" style="position: absolute; right: 2rem;">
                 <button id="btnPanic" class="btn btn-stop"
-                    style="background:#000; box-shadow:0 0 20px rgba(0,255,0,0.6); border:2px solid #00ff00; color: #00ff00; font-weight: 900;">STOP</button>
+                    style="background: #000; box-shadow: 0 0 20px rgba(0,255,0,0.5); border: 2px solid #00ff00; color: #00ff00; font-weight: 900; padding: 10px 25px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; text-transform: uppercase; font-family: 'Orbitron'; transition: 0.3s;">
+                    STOP
+                </button>
             </div>
         </header>
 
@@ -441,20 +434,6 @@
                 <!-- O Card do Cliente será gerado dinamicamente -->
             </div>
         </div>
-        </div>
-
-        <!-- RADAR DE OPERAÇÕES ATIVAS (TELEMETRIA DINÂMICA) -->
-        <div id="activeTradesPanel" class="panel"
-            style="display: none; margin-bottom: 1.5rem; border-color: var(--cyber-blue); background: rgba(0, 30, 60, 0.2);">
-            <h3
-                style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--cyber-blue); font-family: 'Orbitron'; display: flex; align-items: center; gap: 10px;">
-                <div class="pulse-mini" style="background: var(--cyber-blue); width: 10px; height: 10px;"></div>
-                TELEMETRIA DE CARTEIRA ATIVA
-            </h3>
-            <div id="activeTradesList"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                <!-- Cards de Telemetria entram aqui via JS -->
-            </div>
         </div>
 
         <div class="main-layout">
@@ -601,9 +580,27 @@
         let lastLogTime = "";
 
         function logout() {
-            localStorage.removeItem('fluxo_clientId');
-            localStorage.removeItem('fluxo_token');
+            localStorage.clear(); // Limpeza TOTAL para garantir ambiente virgem no próximo login
             window.location.href = '/';
+        }
+
+        // Função para Resetar Ambiente Operacional (Site Virgem)
+        async function resetEnvironment(i) {
+            if (!confirm("⚠️ Isso irá resetar todo o seu histórico e configurações, deixando o site 'VIRGEM'. Continuar?")) return;
+            try {
+                const res = await fetch(`${API_URL}/reset-client`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId: i })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    localStorage.removeItem(`sifras_apikey_${i}`);
+                    localStorage.removeItem(`sifras_secret_${i}`);
+                    addLog("🚀 AMBIENTE REINICIADO COM SUCESSO (ESTADO VIRGEM)", 'info');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch (e) { alert("Erro ao resetar ambiente."); }
         }
 
         function buildClientCard(i) {
@@ -629,26 +626,37 @@
                         </select>
                         <button id="btnStart${i}" class="btn btn-start" style="width: 25%; padding: 6px; font-size: 0.6rem;">CONECTAR SNIPER</button>
                         <button id="btnInf${i}" onclick="toggleInfinity(${i})" class="btn" style="width: 8%; padding: 6px; background: #111; color: #444; border: 1px solid #222; font-size: 0.9rem; transition: 0.3s;" title="Infinity Loop Control">∞</button>
+                        <button onclick="setMonitor(${i})" class="btn" style="width: 7%; padding: 6px; background: #222; color: var(--cyber-blue); border: 1px solid var(--border-glow);" title="Monitorar">👁️</button>
                         <button onclick="downloadReport(${i})" class="btn" style="width: 7%; padding: 6px; background: #333; color: white;" title="Baixar PDF">📄</button>
                         <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)">
-                        <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)">
+                        <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)" autocomplete="new-password">
+                        <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)" autocomplete="new-password">
                         <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
+                        <button onclick="resetEnvironment(${i})" class="btn" style="width: 30px; padding: 6px; background: rgba(255,0,85,0.1); color: var(--cyber-red); border: 1px solid var(--cyber-red);" title="Zerar Ambiente">🧹</button>
                     </div>
                 </div>
             `;
-            // Attach Event Listeners
+            // Ativa os eventos e a comunicação com o servidor
             initClientEvents(i);
             
-            // Sync initial state
-            const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
-            const savedSec = localStorage.getItem(`sifras_secret_${i}`);
-            if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
-            if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            // Sincronia de Nome (Se existir no servidor/cache)
+            const savedName = localStorage.getItem(`sifras_name_${i}`);
+            if (savedName) document.getElementById(`clientName${i}`).value = savedName;
+            
+            const savedApiKey = localStorage.getItem(`sifras_apikey_${i}`);
+            const savedApiSecret = localStorage.getItem(`sifras_secret_${i}`);
+            if (savedApiKey) document.getElementById(`apiKey${i}`).value = savedApiKey;
+            if (savedApiSecret) document.getElementById(`apiSecret${i}`).value = savedApiSecret;
             
             document.getElementById('labelClientId').innerText = `ID: ${i}`;
+
+            // Inicia o monitoramento de dados imediatamente
+            updateUI();
+            if (!window.statusInterval) {
+                window.statusInterval = setInterval(updateUI, 3500);
+            }
         }
 
         // Relógio de Precisão Frontend
@@ -682,6 +690,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (monitoredClientId) {
                 buildClientCard(monitoredClientId);
+                setMonitor(monitoredClientId);
             } else {
                 window.location.href = '/';
             }
@@ -773,7 +782,6 @@
 
                 // Atualizar Hub de Status (10 clientes)
                 const tradesList = document.getElementById('activeTradesList');
-                const tradesPanel = document.getElementById('activeTradesPanel');
                 let hasActiveTrades = false;
                 let tradesHTML = '';
 
@@ -784,12 +792,28 @@
                         const labelHub = document.getElementById(`labelHub${s.id}`);
                         if (pulseHub && labelHub) {
                             let color = '#333';
-                            if (s.status === 'SCANNING') color = 'var(--cyber-green)';
-                            if (s.status === 'IN_TRADE') color = 'var(--cyber-blue)';
-                            if (s.status === 'COOLDOWN') color = 'var(--cyber-gold)';
+                            let statusText = s.status;
+                            pulseHub.classList.add('pulse-active'); // Sempre pulsando se estiver online
+
+                            if (s.status === 'SCANNING') {
+                                color = 'var(--cyber-green)';
+                                statusText = 'BUSCANDO OPORTUNIDADE (ALFA)';
+                            } else if (s.status === 'IN_TRADE') {
+                                color = 'var(--cyber-blue)';
+                                statusText = 'OPERANDO ATIVO Sniper';
+                            } else if (s.status === 'COOLDOWN') {
+                                color = 'var(--cyber-gold)';
+                                statusText = 'AGUARDANDO COOLDOWN';
+                            } else {
+                                color = '#666';
+                                statusText = 'MODO ESPERA';
+                                pulseHub.classList.remove('pulse-active');
+                            }
+                            
                             pulseHub.style.background = color;
-                            pulseHub.style.boxShadow = `0 0 5px ${color}`;
-                            labelHub.innerText = s.status;
+                            pulseHub.style.boxShadow = `0 0 8px ${color}`;
+                            labelHub.innerText = statusText;
+                            labelHub.style.color = color;
 
                             const balHub = document.getElementById(`balanceHub${s.id}`);
                             if (balHub && s.balanceUSDT) {
@@ -822,13 +846,17 @@
                             }
                         }
 
-                        // Sincronizar API Keys
+                        // Sincronizar API Keys apenas se o Servidor tiver dados (Bot Ativo)
                         const inputKey = document.getElementById(`apiKey${s.id}`);
                         const inputSec = document.getElementById(`apiSecret${s.id}`);
                         const btnStart = document.getElementById(`btnStart${s.id}`);
 
-                        if (inputKey && s.apiKey && !inputKey.value) inputKey.value = s.apiKey;
-                        if (inputSec && s.apiSecret && !inputSec.value) inputSec.value = s.apiSecret;
+                        if (inputKey && s.apiKey && s.status !== 'IDLE') {
+                            if (!inputKey.value) inputKey.value = s.apiKey;
+                        }
+                        if (inputSec && s.apiSecret && s.status !== 'IDLE') {
+                            if (!inputSec.value) inputSec.value = s.apiSecret;
+                        }
 
                         // Atualizar Estado do Botão
                         if (btnStart) {
@@ -928,7 +956,7 @@
                     });
                 }
 
-                tradesPanel.style.display = hasActiveTrades ? 'block' : 'none';
+                // tradesPanel removido para manter layout original
                 // Removemos o tradesList.innerHTML = tradesHTML; porque agora manipulamos direto.
 
                 // Limpeza de segurança: remove cards de trades que não existem mais nos dados

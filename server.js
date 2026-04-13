@@ -38,10 +38,27 @@ app.use((req, res, next) => {
 
 let clients = [];
 const VIRGIN_TEMPLATE = {
-    username: '', password: '', clientName: '', isApproved: false, apiKey: '', apiSecret: '',
-    buyPercentage: 1.0, operationsCount: 0, totalProfit: 0, currentAsset: null, buyPrice: 0,
-    status: 'IDLE', tradeHistory: [], tradedCoins: [], lastTradeTime: 0, cycleCount: 0,
-    nextAllowedTradeTime: 0, profitTarget: 0.7, isInfinityLoop: false, balanceUSDT: 0, tradedCoins: []
+    username: '', 
+    password: '', 
+    clientName: '', 
+    isApproved: false, 
+    apiKey: '', 
+    apiSecret: '',
+    buyPercentage: 1.0, 
+    operationsCount: 0, 
+    totalProfit: 0, 
+    currentAsset: null, 
+    buyPrice: 0,
+    status: 'IDLE', 
+    tradeHistory: [], 
+    tradedCoins: [], 
+    lastTradeTime: 0, 
+    cycleCount: 0,
+    nextAllowedTradeTime: 0, 
+    profitTarget: 0.8, 
+    isInfinityLoop: false, 
+    balanceUSDT: 0,
+    logs: []
 };
 
 function saveDatabase() {
@@ -123,12 +140,21 @@ function addServerLog(clientId, msg, type = 'info') {
     console.log(`[${prefix}] ${time} - ${msg}`);
 }
 
+
+let cachedServerTimeDiff = 0;
+async function syncServerTime() {
+    try {
+        const res = await fetch('https://api.binance.com/api/v3/time');
+        const { serverTime } = await res.json();
+        cachedServerTimeDiff = serverTime - Date.now();
+    } catch (e) {}
+}
+setInterval(syncServerTime, 60000);
+syncServerTime();
+
 async function binanceRequest(client, endpoint, method = 'GET', params = {}) {
     try {
-        const timeRes = await fetch('https://api.binance.com/api/v3/time');
-        const { serverTime } = await timeRes.json();
-        const diff = serverTime - Date.now();
-        const timestamp = Date.now() + diff;
+        const timestamp = Date.now() + cachedServerTimeDiff;
 
         let queryString = `timestamp=${timestamp}&recvWindow=60000`;
         Object.keys(params).forEach(key => queryString += `&${key}=${params[key]}`);
@@ -170,7 +196,7 @@ setInterval(async () => {
         const sortedByRank = usdtTickers.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
 
         // 2. MAPEAR O TOP 20 REAL (COM RANKING FIXO)
-        globalMarket.top15 = sortedByRank.slice(0, 20).map((i, index) => {
+        globalMarket.top20 = sortedByRank.slice(0, 20).map((i, index) => {
             let isSeed = false;
             let isMonitoring = false;
             if (globalMarket.exchangeInfo) {
@@ -193,7 +219,7 @@ setInterval(async () => {
 
         // LOG DE AUDITORIA: Exibir o Top 3 Real no Console/Log para conferência
         if (now % 20000 < 2500) {
-            console.log(`[RANKING REAL] #1:${globalMarket.top15[0]?.symbol} #2:${globalMarket.top15[1]?.symbol} #3:${globalMarket.top15[2]?.symbol}`);
+            console.log(`[RANKING REAL] #1:${globalMarket.top20[0]?.symbol} #2:${globalMarket.top20[1]?.symbol} #3:${globalMarket.top20[2]?.symbol}`);
         }
 
         const hasActiveScanner = clients.some(c => c.status === 'SCANNING');
@@ -206,8 +232,8 @@ setInterval(async () => {
             if (!globalMarket.lastCycleStartTime) globalMarket.lastCycleStartTime = now;
             const elapsed = now - globalMarket.lastCycleStartTime;
             
-            // Calculate Jumps for UI (SÓ PARA O TOP 15)
-            globalMarket.top15.forEach(c => {
+            // Calculate Jumps for UI (SÓ PARA O TOP 20)
+            globalMarket.top20.forEach(c => {
                 if (!globalMarket.priceHistory[c.symbol]) {
                     globalMarket.priceHistory[c.symbol] = c.price;
                 }
@@ -221,13 +247,13 @@ setInterval(async () => {
                 await checkClientsForOpportunity();
                 globalMarket.lastCycleStartTime = now;
                 // RESET DE HISTÓRICO: DEFINIR NOVO PREÇO BASE PARA O PRÓXIMO CICLO
-                globalMarket.top15.forEach(c => globalMarket.priceHistory[c.symbol] = c.price);
+                globalMarket.top20.forEach(c => globalMarket.priceHistory[c.symbol] = c.price);
             }
         }
 
-        // Update Balances occasionally (every 10s)
+        // Update Balances occasionally (every 10s) in parallel
         if (now % 10000 < 2500) {
-            for (const c of clients) {
+            Promise.all(clients.map(async (c) => {
                 if (c.apiKey && c.apiSecret) {
                     const acc = await binanceRequest(c, '/api/v3/account');
                     if (acc && acc.balances) {
@@ -235,7 +261,7 @@ setInterval(async () => {
                         if (usdt) c.balanceUSDT = parseFloat(usdt.free) + parseFloat(usdt.locked);
                     }
                 }
-            }
+            })).catch(() => {});
         }
     } catch (e) {
         console.error("HEARTBEAT ERROR:", e.message);
@@ -244,7 +270,7 @@ setInterval(async () => {
 
 async function checkClientsForOpportunity() {
     // A REGRA É SAGRADA: SÓ OLHAMOS QUEM ESTÁ ENTRE AS POSIÇÕES REAIS #2 E #15
-    const pool = globalMarket.top15.slice(1, 15); 
+    const pool = globalMarket.top20.slice(1, 15); 
     let bestCoin = null; 
     let maxJump = 0;
     
@@ -344,14 +370,14 @@ async function monitorTrade(client, symbol) {
         if (client.status !== 'IN_TRADE') return clearInterval(inter);
         try {
             const t = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json());
-            if (t.price) {
-                const curr = parseFloat(t.price);
-                client.currentPrice = curr;
-                if (curr >= client.targetPrice) {
-                    clearInterval(inter);
-                    executeRealSell(client, symbol);
-                }
+        if (t.price) {
+            const curr = parseFloat(t.price);
+            client.currentPrice = curr;
+            if (curr >= client.targetPrice) {
+                clearInterval(inter);
+                executeRealSell(client, symbol);
             }
+        }
         } catch (e) {}
     }, 3000);
 }
@@ -437,33 +463,60 @@ app.get('/operacional', (req, res) => res.sendFile(path.join(__dirname, 'operaci
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 app.get('/status', (req, res) => {
-    globalPingCount++;
-    const cid = parseInt(req.query.clientId) || 1;
-    const masterKey = req.headers['x-master-key'];
-    const c = clients.find(x => x.id === cid) || clients[0];
-    
-    // SEGURANÇA MÁXIMA (v8.6.5)
-    // Se tentar acessar o ID 1, PRECISA da chave mestre
-    const isAdmin = (cid === 1 && masterKey === 'vega2026');
-    
-    // Se o usuário tentar forçar o ID 1 sem ser admin, redirecionamos para o ID dele (ou 0)
-    if (cid === 1 && masterKey !== 'vega2026') {
-        return res.json({ ok: false, msg: 'Acesso Negado ao Painel Mestre.' });
-    }
+    try {
+        globalPingCount++;
+        const clientId = req.query.clientId;
+        const masterKey = req.headers['x-master-key'];
+        
+        // Basic stats for all clients (HUB/LEDs)
+        const allStats = clients.map(c => ({
+            id: c.id,
+            name: c.clientName,
+            status: c.status,
+            balanceUSDT: c.balanceUSDT || 0,
+            isInfinityLoop: c.isInfinityLoop,
+            currentAsset: c.currentAsset,
+            buyPrice: c.buyPrice,
+            targetPrice: c.targetPrice,
+            currentPrice: c.currentPrice
+        }));
 
-    res.json({
-        ...c,
-        allStats: isAdmin ? clients.map(x => ({ 
-            ...x,
-            apiKey: x.apiKey ? 'PROTECTED' : '',
-            apiSecret: x.apiSecret ? 'PROTECTED' : ''
-        })) : [ { ...c, apiKey: '', apiSecret: '' } ],
-        top20: globalMarket.top15,
-        coinJumps: globalMarket.coinJumps,
-        countdownRemaining: globalMarket.countdownRemaining,
-        pingCount: globalPingCount,
-        logs: isAdmin ? globalLogs : (c.logs || [])
-    });
+        if (clientId) {
+            const cid = parseInt(clientId);
+            const isAdmin = (cid === 1 && masterKey === 'vega2026');
+            const client = clients.find(c => c.id === cid);
+            
+            if (!client) return res.status(404).json({ ok: false, msg: 'Cliente não encontrado' });
+
+            // Isolated data for the specific client
+            return res.json({
+                ok: true,
+                id: client.id,
+                name: client.clientName,
+                status: client.status,
+                balanceUSDT: client.balanceUSDT || 0,
+                operationsCount: client.operationsCount,
+                totalProfit: client.totalProfit,
+                currentAsset: client.currentAsset,
+                buyPrice: client.buyPrice,
+                targetPrice: client.targetPrice,
+                currentPrice: client.currentPrice,
+                isInfinityLoop: client.isInfinityLoop,
+                tradeHistory: client.tradeHistory || [],
+                logs: (isAdmin || cid === client.id) ? (client.logs || []) : [],
+                apiKey: client.apiKey,
+                apiSecret: client.apiSecret,
+                allStats,
+                top20: globalMarket.top20,
+                pingCount: globalPingCount,
+                countdownRemaining: 20 - (globalMarket.cycleCount % 8) * 2.5
+            });
+        }
+
+        return res.json({ ok: true, allStats, top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
+    } catch (e) {
+        res.status(500).json({ ok: false, msg: e.message });
+    }
 });
 
 app.post('/api/login', (req, res) => {
@@ -483,22 +536,73 @@ app.post('/api/login', (req, res) => {
 app.post('/api/register', (req, res) => {
     const { user, pass } = req.body;
     if (clients.find(x => x.username === user)) return res.json({ ok:false, msg:'Usuário já existe.' });
-    const newId = clients.length + 1;
-    clients.push({ ...VIRGIN_TEMPLATE, id: newId, username: user, password: pass, clientName: user.split('@')[0], isApproved: false });
+    
+    const newId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) + 1 : 1;
+    
+    const newUser = { 
+        ...JSON.parse(JSON.stringify(VIRGIN_TEMPLATE)), 
+        id: newId, 
+        username: user, 
+        password: pass, 
+        clientName: user.split('@')[0].toUpperCase(),
+        isApproved: false 
+    };
+    
+    clients.push(newUser);
     saveDatabase();
+    addServerLog(null, `🆕 NOVO CADASTRO: ${user} (Aguardando Aprovação)`, 'info');
     res.json({ ok:true });
 });
 
-app.post('/start', (req, res) => {
+app.post('/start', async (req, res) => {
     const { clientId, clientName, apiKey, apiSecret, buyPercentage } = req.body;
     const c = clients.find(x => x.id === clientId);
     if (c) {
         c.clientName = clientName || c.clientName;
         c.apiKey = apiKey; c.apiSecret = apiSecret;
         c.buyPercentage = parseFloat(buyPercentage) || 1.0;
-        c.status = 'SCANNING'; 
+        
+        // --- RECUPERAÇÃO AUTOMÁTICA DE POSIÇÃO (v8.6.4) ---
+        addServerLog(c.id, "AUDITANDO CONTA BINANCE PARA RECUPERAÇÃO...", 'info');
+        const acc = await binanceRequest(c, '/api/v3/account');
+        
+        let positionFound = false;
+        if (!acc.error && acc.balances) {
+            // Procura por qualquer moeda que não seja USDT/BNB e tenha valor > $10
+            for (const b of acc.balances) {
+                const total = parseFloat(b.free) + parseFloat(b.locked);
+                if (total > 0 && b.asset !== 'USDT' && b.asset !== 'BNB') {
+                    const symbol = b.asset + 'USDT';
+                    try {
+                        const ticker = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json());
+                        if (ticker.price) {
+                            const val = total * parseFloat(ticker.price);
+                            if (val > 8.0) { // Encontramos uma posição ativa!
+                                c.status = 'IN_TRADE';
+                                c.currentAsset = symbol;
+                                c.currentPrice = parseFloat(ticker.price);
+                                // Tenta estimar o preço de compra se não tivermos
+                                if (!c.buyPrice || c.buyPrice === 0) {
+                                    c.buyPrice = c.currentPrice; // Fallback para o preço atual
+                                    c.targetPrice = c.buyPrice * (1 + (c.profitTarget + 0.2) / 100);
+                                }
+                                addServerLog(c.id, `♻️ POSIÇÃO DETECTADA: ${symbol} ($${val.toFixed(2)}) - RETOMANDO MONITORAMENTO`, 'info');
+                                monitorTrade(c, symbol);
+                                positionFound = true;
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        if (!positionFound) {
+            c.status = 'SCANNING'; 
+            addServerLog(c.id, "CONECTADO AO SNIPER ALFA - BUSCANDO OPORTUNIDDES", 'info');
+        }
+        
         saveDatabase();
-        addServerLog(c.id, "CONECTADO AO SNIPER ALFA", 'info');
         res.json({ ok:true });
     } else res.json({ ok:false });
 });
