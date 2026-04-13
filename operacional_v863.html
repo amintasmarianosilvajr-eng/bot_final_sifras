@@ -789,6 +789,8 @@
                         const labelHub = document.getElementById(`labelHub${s.id}`);
                         if (pulseHub && labelHub) {
                             let statusText = 'OFFLINE';
+                            let color = '#333';
+
                             if (s.status === 'SCANNING') {
                                 color = 'var(--cyber-green)';
                                 statusText = 'BUSCANDO MOEDA';
