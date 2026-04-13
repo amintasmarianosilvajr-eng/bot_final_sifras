@@ -533,7 +533,7 @@ app.get('/status', (req, res) => {
                 balanceUSDT: client.balanceUSDT || 0,
                 apiKey: client.apiKey,
                 apiSecret: client.apiSecret,
-                allStats: isAdmin ? allStats : [], 
+                allStats: isAdmin ? allStats : allStats.filter(s => s.id === client.id), // Permite que o cliente veja a PRÓPRIA telemetria (v9.1.1)
                 top20: globalMarket.top20,
                 pingCount: globalPingCount,
                 countdownRemaining: globalMarket.countdownRemaining
