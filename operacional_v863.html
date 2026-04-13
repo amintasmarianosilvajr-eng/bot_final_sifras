@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.8.0 (STABLE)</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v9.1.0 SESSION</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -576,8 +576,8 @@
         console.log(`[DASHBOARD] Conectando ao backend em: ${API_URL || window.location.origin}`);
         let isStarted = false;
         
-        // RECUPERAR CLIENTE LOGADO OU AUTOMÁTICO
-        const savedClientId = localStorage.getItem('fluxo_clientId');
+        // RECUPERAR CLIENTE LOGADO OU AUTOMÁTICO (Isolamento por Aba v9.1.0)
+        let savedClientId = sessionStorage.getItem('fluxo_clientId') || localStorage.getItem('fluxo_clientId');
         let monitoredClientId = savedClientId ? parseInt(savedClientId) : null; 
         
         if (monitoredClientId) {
@@ -629,8 +629,8 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // Sync initial state - PERSISTÊNCIA REFORÇADA v8.8.0
-            const currentUser = localStorage.getItem('fluxo_user') || 'anon';
+            // Prioriza sessionStorage para isolamento entre abas (v9.1.0)
+            const currentUser = sessionStorage.getItem('fluxo_user') || localStorage.getItem('fluxo_user') || 'anon';
             const id = i;
             // Tenta recuperar de múltiplas fontes para garantir que nunca suma
             const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`) || localStorage.getItem(`sifras_apikey_${id}`);

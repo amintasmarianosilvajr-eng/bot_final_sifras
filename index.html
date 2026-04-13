@@ -113,9 +113,12 @@
                     msg.style.color = '#00ff88';
                     msg.innerText = mode === 'login' ? "SINCROIZAÇÃO CONCLUÍDA! REDIRECIONANDO..." : "REGISTRO ALFA CONCLUÍDO!";
                     if (mode === 'login') {
-                        localStorage.setItem('fluxo_clientId', data.clientId);
-                        localStorage.setItem('fluxo_user', user); 
-                        if (data.masterKey) localStorage.setItem('fluxo_masterKey', data.masterKey);
+                        sessionStorage.setItem('fluxo_clientId', data.clientId);
+                        sessionStorage.setItem('fluxo_user', user); 
+                        if (data.masterKey) sessionStorage.setItem('fluxo_masterKey', data.masterKey);
+                        
+                        localStorage.setItem('fluxo_clientId', data.clientId); // Fallback precaucional
+                        localStorage.setItem('fluxo_user', user);
                         setTimeout(() => window.location.href = data.redirect, 1200);
                     } else {
                         setTimeout(() => switchTab('login'), 1500);
