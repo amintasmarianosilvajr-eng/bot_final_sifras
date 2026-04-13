@@ -817,6 +817,19 @@
                         if (inputKey && s.apiKey && !inputKey.value) inputKey.value = s.apiKey;
                         if (inputSec && s.apiSecret && !inputSec.value) inputSec.value = s.apiSecret;
 
+                        // NOVA REGRA VIRGEM: Se o servidor retornou conta LIMPA (sem chaves),
+                        // mas o navegador ainda tem algo no localStorage desse ID, limpamos o local também.
+                        if (s.id === monitoredClientId) {
+                            if (!s.apiKey && localStorage.getItem(`sifras_apikey_${s.id}`)) {
+                                localStorage.removeItem(`sifras_apikey_${s.id}`);
+                                if (inputKey) inputKey.value = '';
+                            }
+                            if (!s.apiSecret && localStorage.getItem(`sifras_secret_${s.id}`)) {
+                                localStorage.removeItem(`sifras_secret_${s.id}`);
+                                if (inputSec) inputSec.value = '';
+                            }
+                        }
+
                         // Atualizar Estado do Botão
                         if (btnStart) {
                             if (s.status !== 'IDLE') {
