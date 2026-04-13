@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const VERSION = "v8.6.5 (TOTAL_VIRGIN)";
+const VERSION = "v8.6.6 (MEMORIZED_VIRGIN)";
 
 // --- CONFIGURAÇÃO DE PERSISTÊNCIA ---
 const VOLUME_PATH = '/app/data';
