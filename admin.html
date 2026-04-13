@@ -208,17 +208,23 @@
         async function resetVirgin(id) {
             if (!confirm(`Deseja aplicar o RESET VIRGEM no cliente #${id}?\nIsso limpará histórico e logs, mantendo as configurações ideais.`)) return;
             
-            const masterKey = localStorage.getItem('fluxo_masterKey');
-            const res = await fetch('/api/admin/reset', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-master-key': masterKey
-                },
-                body: JSON.stringify({ clientId: id })
-            });
-            const data = await res.json();
-            if (data.ok) fetchAdminData();
+            const masterKey = localStorage.getItem('fluxo_masterKey') || 'vega2026';
+            try {
+                const res = await fetch('/api/admin/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-master-key': masterKey },
+                    body: JSON.stringify({ clientId: id })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(`O cliente #${id} foi resetado com sucesso para o estado VIRGEM.`);
+                    fetchAdminData();
+                } else {
+                    alert(`Erro ao resetar: ${data.msg || 'Acesso Negado'}`);
+                }
+            } catch(e) {
+                alert("ERRO DE CONEXÃO AO RESETAR");
+            }
         }
 
         // Live Update

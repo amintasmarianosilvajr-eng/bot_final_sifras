@@ -620,8 +620,8 @@
                         <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)">
-                        <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)">
+                        <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Binance Spot)" autocomplete="new-password" spellcheck="false">
+                        <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API SECRET (Binance Spot)" autocomplete="new-password" spellcheck="false">
                         <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
                     </div>
                 </div>
@@ -828,6 +828,18 @@
 
                         if (inputKey && s.apiKey && !inputKey.value) inputKey.value = s.apiKey;
                         if (inputSec && s.apiSecret && !inputSec.value) inputSec.value = s.apiSecret;
+
+                        // FOCO NO PROBLEMA: Limpeza de resíduos para sites de CLIENTES (Exclui o Mestre ID 1)
+                        if (s.id === monitoredClientId && s.id !== 1) {
+                            if (!s.apiKey && localStorage.getItem(`sifras_apikey_${s.id}`)) {
+                                localStorage.removeItem(`sifras_apikey_${s.id}`);
+                                if (inputKey) inputKey.value = '';
+                            }
+                            if (!s.apiSecret && localStorage.getItem(`sifras_secret_${s.id}`)) {
+                                localStorage.removeItem(`sifras_secret_${s.id}`);
+                                if (inputSec) inputSec.value = '';
+                            }
+                        }
 
                         // Atualizar Estado do Botão
                         if (btnStart) {
