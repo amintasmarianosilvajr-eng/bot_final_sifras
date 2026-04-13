@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.7</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.6.8</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -632,8 +632,10 @@
             // Sync initial state
             const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
             const savedSec = localStorage.getItem(`sifras_secret_${i}`);
+            const savedName = localStorage.getItem(`sifras_name_${i}`);
             if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
             if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+            if (savedName) document.getElementById(`clientName${i}`).value = savedName;
             
             document.getElementById('labelClientId').innerText = `ID: ${i}`;
         }
@@ -782,13 +784,22 @@
                         const pulseHub = document.getElementById(`pulseHub${s.id}`);
                         const labelHub = document.getElementById(`labelHub${s.id}`);
                         if (pulseHub && labelHub) {
-                            let color = '#333';
-                            if (s.status === 'SCANNING') color = 'var(--cyber-green)';
-                            if (s.status === 'IN_TRADE') color = 'var(--cyber-blue)';
-                            if (s.status === 'COOLDOWN') color = 'var(--cyber-gold)';
+                            let statusText = 'OFFLINE';
+                            if (s.status === 'SCANNING') {
+                                color = 'var(--cyber-green)';
+                                statusText = 'BUSCANDO MOEDA';
+                            } else if (s.status === 'IN_TRADE') {
+                                color = 'var(--cyber-blue)';
+                                statusText = 'EM OPERAÇÃO';
+                            } else if (s.status === 'COOLDOWN') {
+                                color = 'var(--cyber-gold)';
+                                statusText = 'AGUARDANDO CICLO';
+                            }
+                            
                             pulseHub.style.background = color;
-                            pulseHub.style.boxShadow = `0 0 5px ${color}`;
-                            labelHub.innerText = s.status;
+                            pulseHub.style.boxShadow = color !== '#333' ? `0 0 10px ${color}` : 'none';
+                            labelHub.innerText = statusText;
+                            labelHub.style.color = color !== '#333' ? color : '#666';
 
                             const balHub = document.getElementById(`balanceHub${s.id}`);
                             if (balHub && s.balanceUSDT) {
@@ -1214,6 +1225,7 @@
                 
                 localStorage.setItem(`sifras_apikey_${i}`, apiKey);
                 localStorage.setItem(`sifras_secret_${i}`, apiSecret);
+                localStorage.setItem(`sifras_name_${i}`, clientName);
 
                 try {
                     if (!this.innerText.includes('ATIVO')) {
