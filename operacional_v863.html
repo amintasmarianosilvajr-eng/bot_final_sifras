@@ -832,8 +832,14 @@
                         const inputSec = document.getElementById(`apiSecret${s.id}`);
                         const btnStart = document.getElementById(`btnStart${s.id}`);
 
-                        if (inputKey && s.apiKey && !inputKey.value) inputKey.value = s.apiKey;
-                        if (inputSec && s.apiSecret && !inputSec.value) inputSec.value = s.apiSecret;
+                        // MEMORIZAÇÃO: Sincroniza campos se o servidor tiver dados (Prioriza o usuário logado)
+                        const serverKey = (s.id === state.id) ? state.apiKey : s.apiKey;
+                        const serverSec = (s.id === state.id) ? state.apiSecret : s.apiSecret;
+                        const serverName = (s.id === state.id) ? state.name : s.name;
+
+                        if (inputName && serverName && !inputName.value) inputName.value = serverName;
+                        if (inputKey && serverKey && !inputKey.value) inputKey.value = serverKey;
+                        if (inputSec && serverSec && !inputSec.value) inputSec.value = serverSec;
 
                         // FOCO NO PROBLEMA: Limpeza de resíduos para sites de CLIENTES (Exclui o Mestre ID 1)
                         if (s.id === monitoredClientId && s.id !== 1) {
