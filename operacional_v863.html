@@ -393,7 +393,7 @@
                     <img src="logo_fluxo.png" alt="Fluxo Alfa" style="height: 75px; width: auto; border-radius: 8px;">
                     <div style="display: flex; flex-direction: column;">
                         <div style="font-family: 'Orbitron'; font-size: 1rem; color: #fff; font-weight: 900; letter-spacing: 2px;">
-                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.7.0 (STABLE)</span>
+                            <span id="versionTag" style="color: var(--cyber-green);">ALFA v8.8.0 (STABLE)</span>
                         </div>
                         <div style="font-size: 0.5rem; color: var(--cyber-green); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
                              🛰️ BINANCE SYNC ACTIVE
@@ -629,11 +629,13 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // Sync initial state - PERSISTÊNCIA ISOLADA POR USUÁRIO (v8.7.0)
+            // Sync initial state - PERSISTÊNCIA REFORÇADA v8.8.0
             const currentUser = localStorage.getItem('fluxo_user') || 'anon';
-            const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`);
-            const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`);
-            const savedName = localStorage.getItem(`sifras_name_${currentUser}`);
+            const id = i;
+            // Tenta recuperar de múltiplas fontes para garantir que nunca suma
+            const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`) || localStorage.getItem(`sifras_apikey_${id}`);
+            const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`) || localStorage.getItem(`sifras_secret_${id}`);
+            const savedName = localStorage.getItem(`sifras_name_${currentUser}`) || localStorage.getItem(`sifras_name_${id}`);
             
             if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
             if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
@@ -848,16 +850,10 @@
                         if (inputKey && serverKey && !inputKey.value) inputKey.value = serverKey;
                         if (inputSec && serverSec && !inputSec.value) inputSec.value = serverSec;
 
-                        // FOCO NO PROBLEMA: Limpeza de resíduos para sites de CLIENTES (Exclui o Mestre ID 1)
+                        // Limpeza APENAS se o servidor estiver vazio E o cache local também (Evita sumiço no F5)
                         if (s.id === monitoredClientId && s.id !== 1) {
-                            // Só limpa se o servidor REALMENTE não tiver chaves para este usuário (usando serverKey calculada acima)
-                            if (!serverKey && localStorage.getItem(`sifras_apikey_${s.id}`)) {
-                                localStorage.removeItem(`sifras_apikey_${s.id}`);
+                            if (!serverKey && !localStorage.getItem(`sifras_apikey_${s.id}`)) {
                                 if (inputKey) inputKey.value = '';
-                            }
-                            if (!serverSec && localStorage.getItem(`sifras_secret_${s.id}`)) {
-                                localStorage.removeItem(`sifras_secret_${s.id}`);
-                                if (inputSec) inputSec.value = '';
                             }
                         }
 
@@ -1226,9 +1222,14 @@
                 }
                 
                 const currentUser = localStorage.getItem('fluxo_user') || 'anon';
+                const id = i;
+                // Salva em ambos os formatos para redundância
                 localStorage.setItem(`sifras_apikey_${currentUser}`, apiKey);
                 localStorage.setItem(`sifras_secret_${currentUser}`, apiSecret);
                 localStorage.setItem(`sifras_name_${currentUser}`, clientName);
+                localStorage.setItem(`sifras_apikey_${id}`, apiKey);
+                localStorage.setItem(`sifras_secret_${id}`, apiSecret);
+                localStorage.setItem(`sifras_name_${id}`, clientName);
 
                 try {
                     if (!this.innerText.includes('ATIVO')) {
