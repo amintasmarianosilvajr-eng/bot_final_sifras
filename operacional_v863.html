@@ -865,7 +865,8 @@
                         const cardId = `trade_card_${s.id}`;
                         let card = document.getElementById(cardId);
 
-                        if (s.status === 'IN_TRADE' && s.currentAsset) {
+                        // PRIVACIDADE: Só mostra o card se for o seu próprio ID ou se você for o ADMIN (ID 1)
+                        if (s.status === 'IN_TRADE' && s.currentAsset && (s.id === monitoredClientId || monitoredClientId === 1)) {
                             hasActiveTrades = true;
                             const profitReal = ((s.currentPrice - s.buyPrice) / s.buyPrice * 100).toFixed(2);
                             const profitColor = profitReal >= 0 ? 'var(--cyber-green)' : '#ff3b3b';

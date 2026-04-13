@@ -528,14 +528,15 @@ app.get('/status', (req, res) => {
                 logs: (isAdmin || cid === client.id) ? (client.logs || []) : [],
                 apiKey: client.apiKey,
                 apiSecret: client.apiSecret,
-                allStats,
+                allStats: isAdmin ? allStats : [], // PRIVACIDADE: Só o mestre vê todos
                 top20: globalMarket.top20,
                 pingCount: globalPingCount,
-                countdownRemaining: 20 - (globalMarket.cycleCount % 8) * 2.5
+                countdownRemaining: globalMarket.countdownRemaining
             });
         }
 
-        return res.json({ ok: true, allStats, top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
+        const isAdminGlobal = (masterKey === 'vega2026');
+        return res.json({ ok: true, allStats: isAdminGlobal ? allStats : [], top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
     } catch (e) {
         res.status(500).json({ ok: false, msg: e.message });
     }
