@@ -434,11 +434,48 @@
         <div class="panel" style="margin-bottom: 1.5rem;">
             <h3
                 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--cyber-blue); font-family: 'Orbitron'; display: flex; justify-content: space-between;">
-                <span style="font-size: 0.6rem; color: #444;">CONFIGURAÇÃO DE SNIPER PERSONALIZADO</span>
-                <span id="labelClientId" style="font-size: 0.6rem; color: var(--cyber-blue); border: 1px solid var(--cyber-blue); padding: 2px 6px; border-radius: 4px;">ID: --</span>
+                HUB DE CONEXÃO - 1 CLIENTE
+                <span style="font-size: 0.6rem; color: #444;">CLIQUE EM 👁️ PARA MONITORAR</span>
             </h3>
-            <div id="hubGrid" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
-                <!-- O Card do Cliente será gerado dinamicamente -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <script>
+                    const hubGrid = document.currentScript.parentElement;
+                    let cardsHtml = '';
+                    for (let i = 1; i <= 1; i++) {
+                        cardsHtml += `
+                        <div id="cardClient${i}" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
+                            <div style="font-size: 0.7rem; color: var(--cyber-gold); margin-bottom: 8px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+                                <span>PAINEL DE CONTROLE ALFA #${i}</span>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="font-size: 0.6rem; color: var(--cyber-blue);">SALDO: <b id="balanceHub${i}">$0.00</b></div>
+                                    <div id="pulseHub${i}" class="pulse-mini" style="background: #333;"></div>
+                                    <span id="labelHub${i}" style="font-size: 0.55rem; color: #666; font-family: 'Orbitron';">OFFLINE</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                                <input type="text" id="clientName${i}" class="input-cyber" style="width: 25%; font-size: 0.7rem;" placeholder="NOME">
+                                <select id="buyPct${i}" class="input-cyber" style="width: 20%; font-size: 0.6rem; padding: 2px;">
+                                    <option value="1">100%</option>
+                                    <option value="0.75">75%</option>
+                                    <option value="0.5" selected>50%</option>
+                                    <option value="0.25">25%</option>
+                                </select>
+                                <button id="btnStart${i}" class="btn btn-start" style="width: 18%; padding: 6px; font-size: 0.6rem;">CONECT</button>
+                                <button id="btnInf${i}" onclick="toggleInfinity(${i})" class="btn" style="width: 8%; padding: 6px; background: #111; color: #444; border: 1px solid #222; font-size: 0.9rem; transition: 0.3s;" title="Infinity Loop Control">∞</button>
+                                <button onclick="setMonitor(${i})" class="btn" style="width: 7%; padding: 6px; background: #222; color: var(--cyber-blue); border: 1px solid var(--border-glow);" title="Monitorar">👁️</button>
+                                <button onclick="downloadReport(${i})" class="btn" style="width: 7%; padding: 6px; background: #333; color: white;" title="Baixar PDF">📄</button>
+                                <button onclick="resetClient(${i})" class="btn" style="width: 7%; padding: 6px; background: #550000; color: white; border: 1px solid #ff0055;" title="Resetar">🗑️</button>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="password" id="apiKey${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="API KEY (Auto-Saved)">
+                                <input type="password" id="apiSecret${i}" class="input-cyber" style="width: 100%; font-size: 0.7rem;" placeholder="SECRET (Auto-Saved)">
+                                <button onclick="resetKeys(${i})" class="btn" style="width: 30px; padding: 6px; background: transparent; color: #444; border: 1px solid #333;" title="Apagar Chaves">🔑</button>
+                            </div>
+                        </div>
+                        `;
+                    }
+                    document.write('<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; width: 100%; grid-column: span 2;">' + cardsHtml + '</div>');
+                </script>
             </div>
         </div>
         </div>
@@ -695,11 +732,14 @@
 
         // Recuperar chaves do LocalStorage no carregamento inicial
         document.addEventListener('DOMContentLoaded', () => {
-            if (monitoredClientId) {
-                buildClientCard(monitoredClientId);
-                setMonitor(monitoredClientId);
-            } else {
-                window.location.href = '/';
+            for (let i = 1; i <= 1; i++) {
+                const savedKey = localStorage.getItem(`sifras_apikey_${i}`);
+                const savedSec = localStorage.getItem(`sifras_secret_${i}`);
+                if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
+                if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
+                
+                monitoredClientId = i; // Default para o primeiro cliente
+                initClientEvents(i);
             }
         });
 
