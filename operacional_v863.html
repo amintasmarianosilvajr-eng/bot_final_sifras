@@ -788,28 +788,33 @@
                         const pulseHub = document.getElementById(`pulseHub${s.id}`);
                         const labelHub = document.getElementById(`labelHub${s.id}`);
                         if (pulseHub && labelHub) {
+                            const colorGreen = "#00ffaa";
+                            const colorBlue = "#00f2ff";
+                            const colorGold = "#ff9d00";
+                            const colorOff = "#333333";
+                            
+                            let targetColor = colorOff;
                             let statusText = 'OFFLINE';
-                            let color = '#333';
 
                             if (s.status === 'SCANNING') {
-                                color = 'var(--cyber-green)';
+                                targetColor = colorGreen;
                                 statusText = 'BUSCANDO MOEDA';
                             } else if (s.status === 'IN_TRADE') {
-                                color = 'var(--cyber-blue)';
+                                targetColor = colorBlue;
                                 statusText = 'EM OPERAÇÃO';
                             } else if (s.status === 'COOLDOWN') {
-                                color = 'var(--cyber-gold)';
+                                targetColor = colorGold;
                                 statusText = 'AGUARDANDO CICLO';
                             }
                             
-                            pulseHub.style.background = color;
-                            pulseHub.style.boxShadow = color !== '#333' ? `0 0 10px ${color}` : 'none';
+                            pulseHub.style.setProperty('background', targetColor, 'important');
+                            pulseHub.style.setProperty('box-shadow', targetColor !== colorOff ? `0 0 12px ${targetColor}` : 'none', 'important');
                             labelHub.innerText = statusText;
-                            labelHub.style.color = color !== '#333' ? color : '#666';
+                            labelHub.style.setProperty('color', targetColor !== colorOff ? targetColor : '#666', 'important');
 
                             const balHub = document.getElementById(`balanceHub${s.id}`);
                             if (balHub && s.balanceUSDT !== undefined) {
-                                balHub.innerText = `$${parseFloat(s.balanceUSDT).toFixed(2)}`;
+                                balHub.innerText = `$${parseFloat(s.balanceUSDT || 0).toFixed(2)}`;
                             }
                         }
                         

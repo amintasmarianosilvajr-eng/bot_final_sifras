@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const VERSION = "v8.6.9 (VIRGIN_FINAL)";
+const VERSION = "v9.0.0 (TOTAL_STABLE)";
 
 // --- CONFIGURAÇÃO DE PERSISTÊNCIA ---
 const VOLUME_PATH = '/app/data';
@@ -606,9 +606,29 @@ app.post('/start', async (req, res) => {
                         if (ticker.price) {
                             const val = total * parseFloat(ticker.price);
                             if (val > 8.0) { // Encontramos uma posição ativa!
+                                const colorGreen = "#00ffaa";
+                                const colorBlue = "#00f2ff";
+                                const colorGold = "#ff9d00";
+                                const colorOff = "#333333";
+                                
+                                let targetColor = colorOff;
+                                let statusText = 'OFFLINE';
+
+                                if (c.status === 'SCANNING') {
+                                    targetColor = colorGreen;
+                                    statusText = 'BUSCANDO MOEDA';
+                                } else if (c.status === 'IN_TRADE') {
+                                    targetColor = colorBlue;
+                                    statusText = 'EM OPERAÇÃO';
+                                } else if (c.status === 'COOLDOWN') {
+                                    targetColor = colorGold;
+                                    statusText = 'AGUARDANDO CICLO';
+                                }
+                                
+                                // UI logic handled via frontend state sync
                                 const balHub = document.getElementById(`balanceHub${c.id}`);
                                 if (balHub && c.balanceUSDT !== undefined) {
-                                    balHub.innerText = `$${parseFloat(c.balanceUSDT).toFixed(2)}`;
+                                    balHub.innerText = `$${parseFloat(c.balanceUSDT || 0).toFixed(2)}`;
                                 }
                                 c.status = 'IN_TRADE';
                                 c.currentAsset = symbol;
