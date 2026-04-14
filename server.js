@@ -558,7 +558,7 @@ app.post('/api/login', (req, res) => {
     
     // Se for o admin mestre, enviamos a chave de autorização
     const masterKey = (c.id === 1) ? 'vega2026' : null;
-    res.json({ ok:true, clientId:c.id, redirect:'/operacional', masterKey });
+    res.json({ ok:true, clientId:c.id, redirect:`/operacional?clientId=${c.id}`, masterKey });
 });
 
 app.post('/api/register', (req, res) => {
