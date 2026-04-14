@@ -586,7 +586,7 @@ app.post('/start', async (req, res) => {
     const { clientId, clientName, apiKey, apiSecret, buyPercentage } = req.body;
     const c = clients.find(x => x.id === clientId);
     if (c) {
-        c.clientName = clientName || c.clientName;
+        c.clientName = (clientName !== undefined) ? clientName : c.clientName;
         c.apiKey = apiKey; c.apiSecret = apiSecret;
         c.buyPercentage = parseFloat(buyPercentage) || 1.0;
         
