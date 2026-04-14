@@ -151,7 +151,7 @@ async function fetchWithTimeout(resource, options = {}) {
 }
 
 function addServerLog(clientId, msg, type = 'info') {
-    const time = new Date().toLocaleTimeString('pt-BR');
+    const time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const client = clientId ? clients.find(c => c.id === clientId) : null;
     const prefix = client ? (client.clientName || `CLIENTE ${client.id}`).toUpperCase() : 'SISTEMA';
     const logItem = { timestamp: time, msg: `${prefix} / ${msg}`, type };
@@ -352,8 +352,8 @@ async function executeRealBuy(client, symbol, price) {
         }
 
         const amount = parseFloat(usdt.free) * (client.buyPercentage || 1.0);
-        if (amount < 10.70) {
-            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE: $${amount.toFixed(2)} (Mín: $10.70)`, 'balance');
+        if (amount < 10.50) {
+            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE: $${amount.toFixed(2)} (Mín: $10.50)`, 'balance');
             client.status = 'SCANNING'; return;
         }
 
