@@ -561,29 +561,25 @@
     </style>
 
     <script>
-        // Configuração Dinâmica da API (VPS ou Localhost)
-        const host = window.location.hostname;
-        const port = window.location.port ? `:${window.location.port}` : '';
-        const protocol = window.location.protocol;
-
-        let API_URL = '';
-        if (protocol === 'file:') {
-            API_URL = 'http://localhost:3000'; // Rodando localmente com dois cliques no arquivo
-        } else {
-            API_URL = ''; // Rodando no servidor (mesma origem)
-        }
-
-        console.log(`[DASHBOARD] Conectando ao backend em: ${API_URL || window.location.origin}`);
-        let isStarted = false;
-        
-        // RECUPERAR CLIENTE LOGADO OU AUTOMÁTICO (Isolamento por Aba v9.1.0)
-        let savedClientId = sessionStorage.getItem('fluxo_clientId') || localStorage.getItem('fluxo_clientId');
-        let monitoredClientId = savedClientId ? parseInt(savedClientId) : null; 
+        // RECUPERAR CLIENTE LOGADO (Isolamento por Sessão v9.1.5)
+        const urlParams = new URLSearchParams(window.location.search);
+        let monitoredClientId = parseInt(urlParams.get('clientId')) || 
+                                parseInt(sessionStorage.getItem('fluxo_clientId')) || 
+                                parseInt(localStorage.getItem('fluxo_clientId'));
         
         if (monitoredClientId) {
             console.log(`[AUTH] Dashboard sincronizado com Cliente ID: ${monitoredClientId}`);
+        } else {
+            console.warn("[AUTH] Nenhum Cliente ID localizado. Redirecionando...");
+            // window.location.href = '/'; // Opcional: Desativado para debug se necessário
         }
 
+        const protocol = window.location.protocol;
+        let API_URL = (protocol === 'file:') ? 'http://localhost:3000' : '';
+        
+        console.log(`[DASHBOARD] Conectando ao backend em: ${API_URL || window.location.origin}`);
+        let isStarted = false;
+        
         window.lastSaleNotified = false;
         let lastLogTime = "";
 
