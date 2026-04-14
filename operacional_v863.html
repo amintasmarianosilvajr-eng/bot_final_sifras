@@ -853,14 +853,16 @@
                         const serverSec = (s.id === state.id) ? state.apiSecret : s.apiSecret;
                         const serverName = (s.id === state.id) ? state.name : s.name;
 
-                        if (inputName && serverName && !inputName.value) inputName.value = serverName;
-                        if (inputKey && serverKey && !inputKey.value) inputKey.value = serverKey;
-                        if (inputSec && serverSec && !inputSec.value) inputSec.value = serverSec;
+                        // Prevenção de sobescrita: Só preenche se o campo não estiver focado
+                        if (inputName && serverName && document.activeElement !== inputName && !inputName.value) inputName.value = serverName;
+                        if (inputKey && serverKey && document.activeElement !== inputKey && !inputKey.value) inputKey.value = serverKey;
+                        if (inputSec && serverSec && document.activeElement !== inputSec && !inputSec.value) inputSec.value = serverSec;
 
-                        // Limpeza APENAS se o servidor estiver vazio E o cache local também (Evita sumiço no F5)
+                        // Limpeza APENAS se o servidor estiver vazio E o cache local também, e NÃO estiver focado
                         if (s.id === monitoredClientId && s.id !== 1) {
-                            if (!serverKey && !localStorage.getItem(`sifras_apikey_${s.id}`)) {
+                            if (!serverKey && !localStorage.getItem(`sifras_apikey_${s.id}`) && document.activeElement !== inputKey && document.activeElement !== inputSec) {
                                 if (inputKey) inputKey.value = '';
+                                if (inputSec) inputSec.value = '';
                             }
                         }
 
