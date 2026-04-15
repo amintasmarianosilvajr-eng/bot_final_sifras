@@ -464,8 +464,8 @@
                 <div id="pingData"
                     style="font-size:0.55rem; color:#444; margin-bottom:15px; font-family:'Orbitron'; text-align: center;">
                     DATA REQUESTS: 0</div>
-                <div style="margin-bottom: 2rem;">
-                    <!-- Telemetria gerenciada pelo painel activeTradesPanel acima -->
+                <div id="activeTradesList" style="margin-bottom: 2rem;">
+                    <!-- Cards de trade ativo (In_Trade) aparecerão aqui -->
                 </div>
 
                 <div id="idleArea">
@@ -625,14 +625,13 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // ID único do cliente sempre tem prioridade para evitar troca de nomes (Fix v9.1.6)
+            // Prioriza sessionStorage para isolamento entre abas (v9.1.0)
             const currentUser = sessionStorage.getItem('fluxo_user') || localStorage.getItem('fluxo_user') || 'anon';
             const id = i;
-            // ID único primeiro (isolado por cliente), currentUser como fallback apenas para chaves
-            const savedKey = localStorage.getItem(`sifras_apikey_${id}`) || localStorage.getItem(`sifras_apikey_${currentUser}`);
-            const savedSec = localStorage.getItem(`sifras_secret_${id}`) || localStorage.getItem(`sifras_secret_${currentUser}`);
-            // Nome: SOMENTE pelo ID único — nunca pelo 'anon' compartilhado
-            const savedName = localStorage.getItem(`sifras_name_${id}`);
+            // Tenta recuperar de múltiplas fontes para garantir que nunca suma
+            const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`) || localStorage.getItem(`sifras_apikey_${id}`);
+            const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`) || localStorage.getItem(`sifras_secret_${id}`);
+            const savedName = localStorage.getItem(`sifras_name_${currentUser}`) || localStorage.getItem(`sifras_name_${id}`);
             
             if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
             if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
@@ -850,9 +849,8 @@
                         const serverSec = (s.id === state.id) ? state.apiSecret : s.apiSecret;
                         const serverName = (s.id === state.id) ? state.name : s.name;
 
-                        // Nome: servidor é sempre autoritativo (corrige cache errado), desde que não esteja digitando
-                        if (inputName && serverName && document.activeElement !== inputName) inputName.value = serverName;
-                        // Chaves: só preenche se estiverem vazias (não sobrescreve o que o usuário digitou)
+                        // Prevenção de sobescrita: Só preenche se o campo não estiver focado
+                        if (inputName && serverName && document.activeElement !== inputName && !inputName.value) inputName.value = serverName;
                         if (inputKey && serverKey && document.activeElement !== inputKey && !inputKey.value) inputKey.value = serverKey;
                         if (inputSec && serverSec && document.activeElement !== inputSec && !inputSec.value) inputSec.value = serverSec;
 
@@ -912,8 +910,8 @@
                         const cardId = `trade_card_${s.id}`;
                         let card = document.getElementById(cardId);
 
-                        // PRIVACIDADE: Mostra apenas o card do cliente monitorado
-                        if (s.status === 'IN_TRADE' && s.currentAsset && s.id === monitoredClientId) {
+                        // PRIVACIDADE: Só mostra o card se for o seu próprio ID ou se você for o ADMIN (ID 1)
+                        if (s.status === 'IN_TRADE' && s.currentAsset && (s.id === monitoredClientId || monitoredClientId === 1)) {
                             hasActiveTrades = true;
                             const profitReal = ((s.currentPrice - s.buyPrice) / s.buyPrice * 100).toFixed(2);
                             const profitColor = profitReal >= 0 ? 'var(--cyber-green)' : '#ff3b3b';
@@ -966,10 +964,10 @@
                 tradesPanel.style.display = hasActiveTrades ? 'block' : 'none';
                 // Removemos o tradesList.innerHTML = tradesHTML; porque agora manipulamos direto.
 
-                // Limpeza de segurança: remove cards que não pertencem ao cliente monitorado
-                const validCardId = `trade_card_${monitoredClientId}`;
+                // Limpeza de segurança: remove cards de trades que não existem mais nos dados
+                const currentIds = (state && state.allStats) ? state.allStats.filter(s => s.status === 'IN_TRADE').map(s => `trade_card_${s.id}`) : [];
                 Array.from(tradesList.querySelectorAll('.active-trade-card')).forEach(c => {
-                    if (c.id !== validCardId) c.remove();
+                    if (!currentIds.includes(c.id)) c.remove();
                 });
 
                 // Live Sync Indicators
@@ -1402,7 +1400,10 @@
             } catch (e) { console.error(e); }
         }
 
-        // setInterval e updateUI já chamados nas linhas 1275-1276 — duplicata removida.
+        // --- PULSO VITAL DO DASHBOARD (v8.6.3) ---
+        // Garante que a tela se atualize sozinha a cada 2 segundos
+        setInterval(updateUI, 2000);
+        updateUI(); // Primeira carga imediata
     </script>
 </body>
 
