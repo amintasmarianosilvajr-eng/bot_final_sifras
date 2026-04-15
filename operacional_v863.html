@@ -631,7 +631,7 @@
             // Tenta recuperar de múltiplas fontes para garantir que nunca suma
             const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`) || localStorage.getItem(`sifras_apikey_${id}`);
             const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`) || localStorage.getItem(`sifras_secret_${id}`);
-            const savedName = localStorage.getItem(`sifras_name_${currentUser}`) || localStorage.getItem(`sifras_name_${id}`);
+            const savedName = localStorage.getItem(`sifras_name_${id}`);
             
             if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
             if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
@@ -850,7 +850,7 @@
                         const serverName = (s.id === state.id) ? state.name : s.name;
 
                         // Prevenção de sobescrita: Só preenche se o campo não estiver focado
-                        if (inputName && serverName && document.activeElement !== inputName && !inputName.value) inputName.value = serverName;
+                        if (inputName && serverName && document.activeElement !== inputName) inputName.value = serverName;
                         if (inputKey && serverKey && document.activeElement !== inputKey && !inputKey.value) inputKey.value = serverKey;
                         if (inputSec && serverSec && document.activeElement !== inputSec && !inputSec.value) inputSec.value = serverSec;
 
