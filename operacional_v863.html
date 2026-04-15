@@ -910,8 +910,8 @@
                         const cardId = `trade_card_${s.id}`;
                         let card = document.getElementById(cardId);
 
-                        // PRIVACIDADE: Só mostra o card se for o seu próprio ID ou se você for o ADMIN (ID 1)
-                        if (s.status === 'IN_TRADE' && s.currentAsset && (s.id === monitoredClientId || monitoredClientId === 1)) {
+                        // PRIVACIDADE: Mostra apenas o card do cliente monitorado
+                        if (s.status === 'IN_TRADE' && s.currentAsset && s.id === monitoredClientId) {
                             hasActiveTrades = true;
                             const profitReal = ((s.currentPrice - s.buyPrice) / s.buyPrice * 100).toFixed(2);
                             const profitColor = profitReal >= 0 ? 'var(--cyber-green)' : '#ff3b3b';
@@ -964,10 +964,10 @@
                 tradesPanel.style.display = hasActiveTrades ? 'block' : 'none';
                 // Removemos o tradesList.innerHTML = tradesHTML; porque agora manipulamos direto.
 
-                // Limpeza de segurança: remove cards de trades que não existem mais nos dados
-                const currentIds = (state && state.allStats) ? state.allStats.filter(s => s.status === 'IN_TRADE').map(s => `trade_card_${s.id}`) : [];
+                // Limpeza de segurança: remove cards que não pertencem ao cliente monitorado
+                const validCardId = `trade_card_${monitoredClientId}`;
                 Array.from(tradesList.querySelectorAll('.active-trade-card')).forEach(c => {
-                    if (!currentIds.includes(c.id)) c.remove();
+                    if (c.id !== validCardId) c.remove();
                 });
 
                 // Live Sync Indicators
