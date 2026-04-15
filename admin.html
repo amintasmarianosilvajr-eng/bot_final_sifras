@@ -35,6 +35,10 @@
         .refresh-indicator { font-size: 0.7rem; color: #333; display: flex; align-items: center; gap: 8px; }
         .dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        @keyframes scanAnim { 0% { transform: translateX(-200%); } 100% { transform: translateX(200%); } }
+        .trade-bar-wrap { margin-top: 7px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+        .trade-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+        .trade-bar-label { font-size: 0.52rem; color: #444; margin-top: 3px; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -80,6 +84,7 @@
 
     <script>
         let lastData = { users: [] };
+        let liveStats = [];
         async function fetchAdminData() {
             try {
                 const masterKey = localStorage.getItem('fluxo_masterKey');
@@ -89,6 +94,13 @@
                 const data = await res.json();
                 if (!data.ok) return window.location.href = '/';
                 lastData = data;
+
+                // Buscar dados live de trade (buyPrice, targetPrice, currentPrice) via /status
+                try {
+                    const sRes = await fetch('/status', { headers: masterKey ? { 'x-master-key': masterKey } : {} });
+                    const sData = await sRes.json();
+                    if (sData.allStats) liveStats = sData.allStats;
+                } catch(e) {}
 
                 document.getElementById('totalUsers').innerText = data.users.length;
                 document.getElementById('activeUsers').innerText = data.users.filter(u => u.status !== 'IDLE').length;
@@ -105,6 +117,7 @@
                         <td>
                             <strong style="color:#fff">${u.clientName || 'Novo Cliente'}</strong><br>
                             <small style="color:#666">${u.user}</small>
+                            ${renderTradeBar(u.id)}
                         </td>
                         <td>${u.password}</td>
                         <td><span class="badge ${u.status === 'IN_TRADE' ? 'badge-trade' : 'badge-idle'}">${u.status}</span></td>
@@ -122,6 +135,32 @@
                     </tr>
                 `}).join('');
             } catch (err) { console.error("Admin Fetch Error"); }
+        }
+
+        function renderTradeBar(id) {
+            const s = liveStats.find(x => x.id === id);
+            if (!s) return '<div class="trade-bar-wrap"><div class="trade-bar-fill" style="width:0%"></div></div>';
+            if (s.status === 'IN_TRADE' && s.buyPrice && s.targetPrice && s.currentPrice) {
+                const range = s.targetPrice - s.buyPrice;
+                const progress = range > 0 ? Math.min(100, Math.max(2, ((s.currentPrice - s.buyPrice) / range) * 100)) : 2;
+                const profitPct = ((s.currentPrice - s.buyPrice) / s.buyPrice * 100).toFixed(2);
+                const color = progress > 70 ? '#00ff9d' : progress > 30 ? '#00f2ff' : '#f3ba2f';
+                return `<div class="trade-bar-wrap" title="${s.currentAsset}: ${profitPct}% → Alvo">
+                    <div class="trade-bar-fill" style="width:${progress}%; background: linear-gradient(90deg, #00f2ff, ${color});"></div>
+                </div>
+                <div class="trade-bar-label">${s.currentAsset || ''} &nbsp;·&nbsp; ${profitPct > 0 ? '+' : ''}${profitPct}%</div>`;
+            } else if (s.status === 'SCANNING') {
+                return `<div class="trade-bar-wrap" style="position:relative;overflow:hidden">
+                    <div class="trade-bar-fill" style="width:30%;background:#00f2ff;opacity:0.5;animation:scanAnim 1.8s infinite linear;"></div>
+                </div>
+                <div class="trade-bar-label" style="color:#00f2ff">SCANNING...</div>`;
+            } else if (s.status === 'COOLDOWN') {
+                return `<div class="trade-bar-wrap">
+                    <div class="trade-bar-fill" style="width:100%;background:#f3ba2f;opacity:0.35;"></div>
+                </div>
+                <div class="trade-bar-label" style="color:#f3ba2f">COOLDOWN</div>`;
+            }
+            return '<div class="trade-bar-wrap"><div class="trade-bar-fill" style="width:0%"></div></div>';
         }
 
         async function approveUser(id) {
