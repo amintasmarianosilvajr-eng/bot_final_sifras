@@ -464,8 +464,8 @@
                 <div id="pingData"
                     style="font-size:0.55rem; color:#444; margin-bottom:15px; font-family:'Orbitron'; text-align: center;">
                     DATA REQUESTS: 0</div>
-                <div id="activeTradesList" style="margin-bottom: 2rem;">
-                    <!-- Cards de trade ativo (In_Trade) aparecerão aqui -->
+                <div style="margin-bottom: 2rem;">
+                    <!-- Telemetria gerenciada pelo painel activeTradesPanel acima -->
                 </div>
 
                 <div id="idleArea">
@@ -1400,10 +1400,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // --- PULSO VITAL DO DASHBOARD (v8.6.3) ---
-        // Garante que a tela se atualize sozinha a cada 2 segundos
-        setInterval(updateUI, 2000);
-        updateUI(); // Primeira carga imediata
+        // setInterval e updateUI já chamados nas linhas 1275-1276 — duplicata removida.
     </script>
 </body>
 
