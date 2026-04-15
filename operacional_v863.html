@@ -625,13 +625,14 @@
             // Attach Event Listeners
             initClientEvents(i);
             
-            // Prioriza sessionStorage para isolamento entre abas (v9.1.0)
+            // ID único do cliente sempre tem prioridade para evitar troca de nomes (Fix v9.1.6)
             const currentUser = sessionStorage.getItem('fluxo_user') || localStorage.getItem('fluxo_user') || 'anon';
             const id = i;
-            // Tenta recuperar de múltiplas fontes para garantir que nunca suma
-            const savedKey = localStorage.getItem(`sifras_apikey_${currentUser}`) || localStorage.getItem(`sifras_apikey_${id}`);
-            const savedSec = localStorage.getItem(`sifras_secret_${currentUser}`) || localStorage.getItem(`sifras_secret_${id}`);
-            const savedName = localStorage.getItem(`sifras_name_${currentUser}`) || localStorage.getItem(`sifras_name_${id}`);
+            // ID único primeiro (isolado por cliente), currentUser como fallback apenas para chaves
+            const savedKey = localStorage.getItem(`sifras_apikey_${id}`) || localStorage.getItem(`sifras_apikey_${currentUser}`);
+            const savedSec = localStorage.getItem(`sifras_secret_${id}`) || localStorage.getItem(`sifras_secret_${currentUser}`);
+            // Nome: SOMENTE pelo ID único — nunca pelo 'anon' compartilhado
+            const savedName = localStorage.getItem(`sifras_name_${id}`);
             
             if (savedKey) document.getElementById(`apiKey${i}`).value = savedKey;
             if (savedSec) document.getElementById(`apiSecret${i}`).value = savedSec;
@@ -849,8 +850,9 @@
                         const serverSec = (s.id === state.id) ? state.apiSecret : s.apiSecret;
                         const serverName = (s.id === state.id) ? state.name : s.name;
 
-                        // Prevenção de sobescrita: Só preenche se o campo não estiver focado
-                        if (inputName && serverName && document.activeElement !== inputName && !inputName.value) inputName.value = serverName;
+                        // Nome: servidor é sempre autoritativo (corrige cache errado), desde que não esteja digitando
+                        if (inputName && serverName && document.activeElement !== inputName) inputName.value = serverName;
+                        // Chaves: só preenche se estiverem vazias (não sobrescreve o que o usuário digitou)
                         if (inputKey && serverKey && document.activeElement !== inputKey && !inputKey.value) inputKey.value = serverKey;
                         if (inputSec && serverSec && document.activeElement !== inputSec && !inputSec.value) inputSec.value = serverSec;
 
