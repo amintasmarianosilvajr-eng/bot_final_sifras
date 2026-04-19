@@ -430,9 +430,34 @@ async function executeRealSell(client, symbol) {
             client.status = 'SCANNING'; return;
         }
 
+        // 1. Limpeza de ordens (Libera saldo bloqueado)
+        await binanceRequest(client, '/api/v3/openOrders', 'DELETE', { symbol: symbol });
+
+        // 2. Saldo atualizado
+        const resAcc = await binanceRequest(client, '/api/v3/account');
+        if (resAcc.error) return;
+        const balRecalced = resAcc.balances.find(b => b.asset === symbol.replace('USDT',''));
+        if (!balRecalced) return;
+        const freeBal = parseFloat(balRecalced.free);
+
         const step = lotSizeFilter.stepSize;
-        const prec = step.includes('.') ? step.split('.')[1].replace(/0+$/, '').length : 0;
-        const qty = (Math.floor(parseFloat(bal.free) * Math.pow(10, prec)) / Math.pow(10, prec)).toFixed(prec);
+        const minQty = parseFloat(lotSizeFilter.minQty || '0');
+        const stepFloat = parseFloat(step);
+        let qty;
+        
+        if (stepFloat < 1) {
+            const prec = step.includes('.') ? step.split('.')[1].replace(/0+$/, '').length : 0;
+            const factor = Math.pow(10, prec);
+            qty = (Math.floor(freeBal * factor) / factor).toFixed(prec);
+        } else {
+            qty = (Math.floor(freeBal / stepFloat) * stepFloat).toString();
+        }
+
+        const qtyFloat = parseFloat(qty);
+        if (qtyFloat <= 0 || qtyFloat < minQty) {
+            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE PARA VENDA: ${qty} (Min: ${minQty})`, 'warning');
+            return;
+        }
 
         const order = await binanceRequest(client, '/api/v3/order', 'POST', {
             symbol: symbol, side: 'SELL', type: 'MARKET', quantity: qty
