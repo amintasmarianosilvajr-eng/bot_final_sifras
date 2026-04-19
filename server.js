@@ -520,11 +520,12 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html'))
 app.get('/status', (req, res) => {
     try {
         globalPingCount++;
-        const clientId = req.query.clientId;
+        const clientId = req.query.clientId ? parseInt(req.query.clientId) : null;
         const masterKey = req.headers['x-master-key'];
-        
-        // Basic stats for all clients (HUB/LEDs)
-        const allStats = clients.map(c => ({
+        const isAdmin = (masterKey === 'vega2026');
+
+        // Telemetria operacional (Hub/Cards) - Sem chaves ou logs
+        const hubStats = clients.map(c => ({
             id: c.id,
             name: c.clientName,
             status: c.status,
@@ -537,13 +538,10 @@ app.get('/status', (req, res) => {
         }));
 
         if (clientId) {
-            const cid = parseInt(clientId);
-            const isAdmin = (cid === 1 && masterKey === 'vega2026');
-            const client = clients.find(c => c.id === cid);
-            
+            const client = clients.find(c => c.id === clientId);
             if (!client) return res.status(404).json({ ok: false, msg: 'Cliente não encontrado' });
 
-            // Isolated data for the specific client
+            // RESPOSTA ISOLADA: Só envia dados completos se for o próprio cliente ou Admin
             return res.json({
                 ok: true,
                 version: VERSION,
@@ -559,19 +557,21 @@ app.get('/status', (req, res) => {
                 currentPrice: client.currentPrice,
                 isInfinityLoop: client.isInfinityLoop,
                 tradeHistory: client.tradeHistory || [],
-                logs: (isAdmin || cid === client.id) ? (client.logs || []) : [],
-                balanceUSDT: client.balanceUSDT || 0,
-                apiKey: client.apiKey,
-                apiSecret: client.apiSecret,
-                allStats: isAdmin ? allStats : allStats.filter(s => s.id === client.id), // Permite que o cliente veja a PRÓPRIA telemetria (v9.1.1)
-                top20: globalMarket.top20,
+                logs: client.logs || [],
+                apiKey: client.apiKey ? `***${client.apiKey.slice(-4)}` : '', // Mascarado por segurança
+                apiSecret: client.apiSecret ? '**********' : '',             // Oculto por segurança
+                allStats: hubStats, // Hub de LEDs para monitoramento visual
                 pingCount: globalPingCount,
                 countdownRemaining: globalMarket.countdownRemaining
             });
         }
 
-        const isAdminGlobal = (masterKey === 'vega2026');
-        return res.json({ ok: true, version: VERSION, allStats: isAdminGlobal ? allStats : [], top20: globalMarket.top20, status: 'SERVER_ACTIVE' });
+        return res.json({ 
+            ok: true, 
+            version: VERSION, 
+            allStats: isAdmin ? hubStats : [], 
+            status: 'SERVER_ACTIVE' 
+        });
     } catch (e) {
         res.status(500).json({ ok: false, msg: e.message });
     }
@@ -636,30 +636,6 @@ app.post('/start', async (req, res) => {
                         if (ticker.price) {
                             const val = total * parseFloat(ticker.price);
                             if (val > 8.0) { // Encontramos uma posição ativa!
-                                const colorGreen = "#00ffaa";
-                                const colorBlue = "#00f2ff";
-                                const colorGold = "#ff9d00";
-                                const colorOff = "#333333";
-                                
-                                let targetColor = colorOff;
-                                let statusText = 'OFFLINE';
-
-                                if (c.status === 'SCANNING') {
-                                    targetColor = colorGreen;
-                                    statusText = 'BUSCANDO MOEDA';
-                                } else if (c.status === 'IN_TRADE') {
-                                    targetColor = colorBlue;
-                                    statusText = 'EM OPERAÇÃO';
-                                } else if (c.status === 'COOLDOWN') {
-                                    targetColor = colorGold;
-                                    statusText = 'AGUARDANDO CICLO';
-                                }
-                                
-                                // UI logic handled via frontend state sync
-                                const balHub = document.getElementById(`balanceHub${c.id}`);
-                                if (balHub && c.balanceUSDT !== undefined) {
-                                    balHub.innerText = `$${parseFloat(c.balanceUSDT || 0).toFixed(2)}`;
-                                }
                                 c.status = 'IN_TRADE';
                                 c.currentAsset = symbol;
                                 c.currentPrice = parseFloat(ticker.price);
@@ -693,10 +669,20 @@ app.post('/stop', async (req, res) => {
     const cid = Number(req.body.clientId);
     const c = clients.find(x => x.id === cid);
     if (c) {
+        // Se estiver em operação, liquida a moeda IMEDIATAMENTE antes de parar
+        if (c.status === 'IN_TRADE' && c.currentAsset) {
+            addServerLog(cid, `🛑 STOP ACIONADO: Liquidando ${c.currentAsset} na Binance...`, 'warning');
+            try {
+                await executeRealSell(c, c.currentAsset);
+            } catch (e) {
+                addServerLog(cid, `❌ ERRO NA LIQUIDAÇÃO DE STOP: ${e.message}`, 'error');
+            }
+        }
+        
         c.status = 'IDLE'; 
         c.currentAsset = null;
         saveDatabase();
-        addServerLog(cid, "⚠️ PARADA FORÇADA PELO USUÁRIO", 'warning');
+        addServerLog(cid, "⚠️ PARADA FORÇADA: SNIPER DESCONECTADO", 'warning');
         res.json({ ok:true });
     } else res.json({ ok:false });
 });

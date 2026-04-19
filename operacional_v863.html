@@ -699,21 +699,23 @@
             updateUI();
         }
 
+        function showProfitCelebration() {
+            const overlay = document.getElementById('profitOverlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 8000);
+            }
+        }
+
         function addLog(msg, type = '') {
             const time = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
             const div = document.createElement('div');
             div.className = `log-line ${type ? 'log-' + type : ''}`;
             div.innerHTML = `[${time}] ${msg}`;
-            function showProfitCelebration() {
-            const overlay = document.getElementById('profitOverlay');
-            overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 8000);
-        }
-
-        const box = document.getElementById('logBox');
-            box.prepend(div);
+            const box = document.getElementById('logBox');
+            if (box) box.prepend(div);
         }
 
         function downloadMyHistory() {
@@ -839,27 +841,23 @@
                             }
                         }
 
-                        // Sincronizar API Keys
+                        // Sincronizar API Keys (Proteção contra sobescrita de mascarados)
                         const inputKey = document.getElementById(`apiKey${s.id}`);
                         const inputSec = document.getElementById(`apiSecret${s.id}`);
                         const btnStart = document.getElementById(`btnStart${s.id}`);
+                        const serverName = s.name;
 
-                        // MEMORIZAÇÃO: Sincroniza campos se o servidor tiver dados (Prioriza o usuário logado)
-                        const serverKey = (s.id === state.id) ? state.apiKey : s.apiKey;
-                        const serverSec = (s.id === state.id) ? state.apiSecret : s.apiSecret;
-                        const serverName = (s.id === state.id) ? state.name : s.name;
-
-                        // Prevenção de sobescrita: Só preenche se o campo não estiver focado
+                        // Sincronia de Nome
                         if (inputName && serverName && document.activeElement !== inputName) inputName.value = serverName;
-                        if (inputKey && serverKey && document.activeElement !== inputKey && !inputKey.value) inputKey.value = serverKey;
-                        if (inputSec && serverSec && document.activeElement !== inputSec && !inputSec.value) inputSec.value = serverSec;
 
-                        // Limpeza APENAS se o servidor estiver vazio E o cache local também, e NÃO estiver focado
-                        if (s.id === monitoredClientId && s.id !== 1) {
-                            if (!serverKey && !localStorage.getItem(`sifras_apikey_${s.id}`) && document.activeElement !== inputKey && document.activeElement !== inputSec) {
-                                if (inputKey) inputKey.value = '';
-                                if (inputSec) inputSec.value = '';
-                            }
+                        // Sincroniza APENAS se o campo estiver vazio e não estiver em foco
+                        if (inputKey && !inputKey.value && document.activeElement !== inputKey) {
+                            const localKey = localStorage.getItem(`sifras_apikey_${s.id}`);
+                            if (localKey) inputKey.value = localKey;
+                        }
+                        if (inputSec && !inputSec.value && document.activeElement !== inputSec) {
+                            const localSec = localStorage.getItem(`sifras_secret_${s.id}`);
+                            if (localSec) inputSec.value = localSec;
                         }
 
                         // Atualizar Estado do Botão
