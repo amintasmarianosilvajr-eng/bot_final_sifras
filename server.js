@@ -465,7 +465,6 @@ async function executeRealSell(client, symbol) {
 
         if (order.error) {
             addServerLog(client.id, `❌ ERRO VENDA: ${order.msg}`, 'error');
-            client.status = 'SCANNING'; // Destravar o cliente mesmo se falhar a venda
             return;
         }
 
@@ -485,21 +484,27 @@ async function executeRealSell(client, symbol) {
             result: profit >= 0 ? 'GAIN' : 'LOSS'
         });
 
-        client.status = 'COOLDOWN';
-        client.currentAsset = null;
-        saveDatabase();
+        // Se for uma venda de lucro automática, entra em COOLDOWN. Se for STOP manual, fica em IDLE.
+        if (client.status !== 'IDLE') {
+            client.status = 'COOLDOWN';
+            client.currentAsset = null;
+            saveDatabase();
 
-        const wait = (client.operationsCount % 3 === 0 ? 15*60*1000 : 2*60*1000);
-        addServerLog(client.id, `🔄 PAUSA: ${wait/60000} minutos...`, 'info');
-        
-        setTimeout(() => {
-            if (client.status === 'COOLDOWN') {
-                client.status = 'SCANNING';
-                if (client.operationsCount >= 3) client.operationsCount = 0;
-                addServerLog(client.id, `▶️ RETORNANDO AO RADAR`, 'info');
-                saveDatabase();
-            }
-        }, wait);
+            const wait = (client.operationsCount % 3 === 0 ? 15*60*1000 : 2*60*1000);
+            addServerLog(client.id, `🔄 PAUSA: ${wait/60000} minutos...`, 'info');
+            
+            setTimeout(() => {
+                if (client.status === 'COOLDOWN') {
+                    client.status = 'SCANNING';
+                    if (client.operationsCount >= 3) client.operationsCount = 0;
+                    addServerLog(client.id, `▶️ RETORNANDO AO RADAR`, 'info');
+                    saveDatabase();
+                }
+            }, wait);
+        } else {
+            client.currentAsset = null;
+            saveDatabase();
+        }
 
     } catch (e) {
         addServerLog(client.id, `❌ CRASH VENDA: ${e.message}`, 'error');
