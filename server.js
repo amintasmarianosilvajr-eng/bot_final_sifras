@@ -379,9 +379,9 @@ async function executeRealBuy(client, symbol, price) {
         
         if (!client.tradedCoins) client.tradedCoins = [];
         client.tradedCoins.push(symbol);
-        if (client.tradedCoins.length > 5) client.tradedCoins.shift();
+        if (client.tradedCoins.length > 10) client.tradedCoins.shift();
 
-        addServerLog(client.id, `✅ COMPRA: ${symbol} @ $${buyPrice.toFixed(8)} | Alvo: $${client.targetPrice.toFixed(8)}`, 'buy');
+        addServerLog(client.id, `✅ COMPRA EFETUADA: ${symbol} @ $${buyPrice.toFixed(8)} | Alvo: $${client.targetPrice.toFixed(8)}`, 'buy');
         saveDatabase();
         monitorTrade(client, symbol);
     } catch (e) {
@@ -398,8 +398,9 @@ async function monitorTrade(client, symbol) {
         if (t.price) {
             const curr = parseFloat(t.price);
             client.currentPrice = curr;
-            if (curr >= client.targetPrice) {
+            if (curr >= client.targetPrice && curr > client.buyPrice) {
                 clearInterval(inter);
+                addServerLog(client.id, `🎯 ALVO ATINGIDO: ${symbol} @ $${curr.toFixed(8)}. Iniciando liquidação...`, 'trigger');
                 executeRealSell(client, symbol);
             }
         }
@@ -455,7 +456,10 @@ async function executeRealSell(client, symbol) {
 
         const qtyFloat = parseFloat(qty);
         if (qtyFloat <= 0 || qtyFloat < minQty) {
-            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE PARA VENDA: ${qty} (Min: ${minQty})`, 'warning');
+            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE (Venda abortada): ${qty} (Min: ${minQty}). Resetando para IDLE.`, 'warning');
+            client.status = 'IDLE';
+            client.currentAsset = null;
+            saveDatabase();
             return;
         }
 
@@ -464,7 +468,11 @@ async function executeRealSell(client, symbol) {
         });
 
         if (order.error) {
-            addServerLog(client.id, `❌ ERRO VENDA: ${order.msg}`, 'error');
+            addServerLog(client.id, `❌ ERRO VENDA BINANCE: ${order.msg}`, 'error');
+            // Mesmo com erro na API, liberamos o robô para não ficar travado
+            client.status = 'IDLE';
+            client.currentAsset = null;
+            saveDatabase();
             return;
         }
 
