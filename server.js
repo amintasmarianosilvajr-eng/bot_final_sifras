@@ -352,8 +352,8 @@ async function executeRealBuy(client, symbol, price) {
         }
 
         const amount = parseFloat(usdt.free) * (client.buyPercentage || 1.0);
-        if (amount < 10.50) {
-            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE: $${amount.toFixed(2)} (Mín: $10.50)`, 'balance');
+        if (amount < 10.40) {
+            addServerLog(client.id, `⚠️ SALDO INSUFICIENTE: $${amount.toFixed(2)} (Mín: $10.40)`, 'balance');
             client.status = 'SCANNING'; return;
         }
 
