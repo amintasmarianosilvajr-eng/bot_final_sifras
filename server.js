@@ -659,36 +659,48 @@ app.post('/start', async (req, res) => {
     } else res.json({ ok:false });
 });
 
-app.post('/stop', (req, res) => {
-    const c = clients.find(x => x.id === req.body.clientId);
+app.post('/stop', async (req, res) => {
+    const cid = Number(req.body.clientId);
+    const c = clients.find(x => x.id === cid);
     if (c) {
-        c.status = 'IDLE'; saveDatabase();
-        addServerLog(c.id, "DESCONECTADO", 'info');
+        c.status = 'IDLE'; 
+        c.currentAsset = null;
+        saveDatabase();
+        addServerLog(cid, "⚠️ PARADA FORÇADA PELO USUÁRIO", 'warning');
         res.json({ ok:true });
     } else res.json({ ok:false });
 });
 
 app.post('/emergency', async (req, res) => {
-    const { clientId } = req.body;
-    console.log(`!!! EMERGENCY PROTOCOL TRIGGERED BY ID: ${clientId} !!!`);
+    const cid = Number(req.body.clientId);
+    console.log(`!!! EMERGENCY PROTOCOL TRIGGERED BY ID: ${cid} !!!`);
     
-    if (clientId === 1) {
-        // Master Admin can stop EVERYTHING
-        for (const c of clients) {
-            if (c.status !== 'IDLE') {
-                const asset = c.currentAsset;
-                c.status = 'IDLE';
-                if (asset) await executeRealSell(c, asset);
+    const stopClient = async (c) => {
+        c.status = 'IDLE';
+        let assetToSell = c.currentAsset;
+        
+        // Auditoria Agressiva: se não souber a moeda, procura na conta
+        if (!assetToSell && c.apiKey) {
+            const acc = await binanceRequest(c, '/api/v3/account');
+            if (!acc.error && acc.balances) {
+                const pos = acc.balances.find(b => (parseFloat(b.free) + parseFloat(b.locked)) > 1e-8 && !['USDT','BNB','FDUSD'].includes(b.asset));
+                if (pos) assetToSell = pos.asset + 'USDT';
             }
         }
-    } else {
-        // Individual user only stops their own bot
-        const c = clients.find(x => x.id === clientId);
-        if (c && c.status !== 'IDLE') {
-            const asset = c.currentAsset;
-            c.status = 'IDLE';
-            if (asset) await executeRealSell(c, asset);
+        
+        if (assetToSell) {
+            addServerLog(c.id, `🚨 EMERGÊNCIA: Liquidando ${assetToSell}`, 'warning');
+            await executeRealSell(c, assetToSell);
         }
+        c.currentAsset = null;
+        saveDatabase();
+    };
+
+    if (cid === 1) {
+        for (const c of clients) await stopClient(c);
+    } else {
+        const c = clients.find(x => x.id === cid);
+        if (c) await stopClient(c);
     }
     res.json({ ok: true });
 });
